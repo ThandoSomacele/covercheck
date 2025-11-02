@@ -1,37 +1,27 @@
 {
-  "name": "insurance-simplified",
-  "version": "1.0.0",
-  "description": "MCP server for insurance documentation and product information",
-  "type": "module",
-  "main": "build/server.js",
-  "bin": {
-    "insurance-simplified": "./build/server.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
-    "start": "node build/server.js",
-    "dev": "tsc && node build/server.js",
-    "ollama": "tsc && node build/ollama-simple.js",
-    "ollama:simple": "tsc && node build/ollama-simplified.js",
-    "test-ollama": "tsc && node build/test-ollama.js",
-    "demo": "tsc && node build/test-simplified.js",
-    "sa": "tsc && node build/sa-medical-aid.js"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4",
-    "ollama": "^0.5.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.3.0"
-  },
-  "keywords": [
-    "mcp",
-    "insurance",
-    "documentation",
-    "rag"
-  ],
-  "author": "Your Name",
-  "license": "MIT"
+	"name": "insurance-assistant",
+	"description": "🇿🇦 Insurance Assistant - Your medical aid and insurance questions answered simply",
+	"private": true,
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^7.0.0",
+		"@sveltejs/kit": "^2.47.1",
+		"@sveltejs/vite-plugin-svelte": "^6.2.1",
+		"svelte": "^5.41.0",
+		"svelte-check": "^4.3.3",
+		"typescript": "^5.9.3",
+		"vite": "^7.1.10"
+	},
+	"dependencies": {
+		"ollama": "^0.6.2"
+	}
 }

@@ -1,414 +1,186 @@
-# Insurance Documentation MCP Server
+# 🇿🇦 Insurance Assistant
 
-A production-ready example of using **RAG (Retrieval-Augmented Generation)** with **MCP (Model Context Protocol)** to create an AI-powered documentation assistant for insurance companies.
+**Your medical aid and insurance questions answered simply.**
 
-## 🎯 What This Solves
+A modern AI-powered insurance assistant with both a web chat interface and CLI tools. Built with SvelteKit, TypeScript, and Ollama for 100% private, R0-cost AI responses.
 
-This demonstrates how to build a system where:
-- Customer service reps can ask natural language questions about insurance products
-- Sales teams can instantly compare plans and calculate costs
-- Agents get accurate, sourced answers without memorizing documentation
-- **NO AI TRAINING REQUIRED** - uses existing Claude/GPT with your data
+## ✨ Features
 
-## 🏗️ Architecture
+- 🌐 **Modern Web Chat Interface** - ChatGPT-style UI for conversational queries
+- 💻 **CLI Tools** - Fast command-line interface for power users (in `legacy/`)
+- 🇿🇦 **South African Context** - Uses Rands (R), SA English, and medical aid terminology
+- 🔒 **100% Private** - Runs locally with Ollama, no data leaves your machine
+- 💰 **R0 Cost** - No API fees, unlimited queries
+- 📚 **Source Citations** - Every answer shows which documents were used
+- ⚡ **Fast & Direct** - Concise answers without jargon
 
-```
-┌─────────────────────────────────────┐
-│  User: "What's covered in Plan A?"  │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│     Claude/GPT (via API)            │  ← No training needed!
-│     Understands natural language     │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│   Insurance MCP Server (This!)      │
-│   - search_documentation tool       │
-│   - query_products tool             │
-│   - compare_plans tool              │
-│   - calculate_annual_cost tool      │
-└─────────────┬───────────────────────┘
-              │
-     ┌────────┴────────┐
-     │                 │
-┌────▼─────┐    ┌─────▼──────┐
-│Documents │    │  Products  │
-│ Database │    │  Database  │
-└──────────┘    └────────────┘
-```
-
-## 🚀 Quick Start (5 minutes)
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ installed
-- Claude Desktop app (or any MCP-compatible client)
+
+1. **Install Ollama:**
+   ```bash
+   # macOS
+   brew install ollama
+
+   # Linux
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+
+2. **Start Ollama and pull a model:**
+   ```bash
+   ollama serve  # In one terminal
+   ollama pull llama3.2  # In another terminal
+   ```
 
 ### Installation
 
 ```bash
-# Navigate to the project directory
-cd insurance-simplified
-
 # Install dependencies
 npm install
 
-# Build the TypeScript
-npm run build
-
-# Test it works
-npm start
-# You should see: "Insurance Documentation MCP Server running on stdio"
-# Press Ctrl+C to stop
+# Start the web chat interface
+npm run dev
 ```
 
-### Configure Claude Desktop
+Open your browser to `http://localhost:5173` and start chatting!
 
-1. Open Claude Desktop settings
-2. Find the MCP configuration file:
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-3. Add this configuration:
-
-```json
-{
-  "mcpServers": {
-    "insurance-docs": {
-      "command": "node",
-      "args": ["/FULL/PATH/TO/insurance-simplified/build/server.js"]
-    }
-  }
-}
-```
-
-**Important**: Replace `/FULL/PATH/TO/` with the actual absolute path!
-
-4. Restart Claude Desktop
-
-### Test It Out
-
-Open Claude Desktop and try these queries:
+## 📁 Project Structure
 
 ```
-"What does Health Plan A cover?"
-
-"Compare Health Plan A and Health Plan B"
-
-"If I use healthcare a lot, which plan is cheaper?"
-
-"How do I file a dental claim?"
-
-"What's the annual cost of Plan A with medium usage?"
+insurance-mcp/
+├── src/
+│   ├── lib/
+│   │   ├── insurance/              # Insurance data and glossaries
+│   │   │   ├── documents-sa.ts     # SA medical aid documents
+│   │   │   ├── insurance-glossary-sa.ts
+│   │   │   └── insurance-jargon-glossary.ts
+│   │   └── server/
+│   │       └── rag.ts              # RAG logic (search + Ollama)
+│   └── routes/
+│       ├── +page.svelte            # Chat UI
+│       └── api/
+│           └── chat/
+│               └── +server.ts       # API endpoint
+├── docs/                            # Complete documentation
+├── legacy/                          # Old CLI/MCP implementations
+├── static/                          # Static assets
+├── package.json
+└── README.md                        # This file
 ```
 
-## 📚 How It Works
+## 🎯 Usage
 
-### The RAG Pattern
-
-**Traditional Approach** (Wrong for this use case):
-```
-Train AI on documents → Hope it remembers → No updates without retraining
-```
-
-**RAG Approach** (What we're doing):
-```
-User asks question → Search relevant documents → Send to AI with context → AI answers with sources
-```
-
-### Why This is Better
-
-1. **Always Up-to-Date**: Change a document, answers change immediately
-2. **Auditable**: Every answer cites its source document
-3. **Cost-Effective**: No expensive training runs
-4. **Accurate**: AI reads actual current documentation, not memories
-5. **Flexible**: Easy to add new document types or data sources
-
-### The Four Tools
-
-1. **`search_documentation`** - Full-text search through policy documents
-   - Like giving Claude a search engine for your docs
-   - Returns relevant sections with context
-
-2. **`query_products`** - Structured queries on product database
-   - Filter by price, type, features
-   - Returns exact pricing and specifications
-
-3. **`compare_plans`** - Side-by-side plan comparison
-   - Generates comparison tables
-   - Highlights key differences
-
-4. **`calculate_annual_cost`** - Cost projection tool
-   - Estimates total annual costs
-   - Accounts for usage patterns
-
-## 🔧 Customization Guide
-
-### Adding Your Own Documents
-
-Edit the `documentsDB` array in `server.ts`:
-
-```typescript
-const documentsDB: Document[] = [
-  {
-    id: "doc-YOUR-ID",
-    title: "Your Document Title",
-    content: `Your full document content here...`,
-    category: "your_category",
-    metadata: { any: "custom fields" }
-  },
-  // ... more documents
-];
-```
-
-### Adding Your Own Products
-
-Edit the `productsDB` array:
-
-```typescript
-const productsDB: Product[] = [
-  {
-    id: "prod-your-id",
-    name: "Your Product Name",
-    type: "product_type",
-    premium_monthly: 299,
-    deductible: 1000,
-    coverage_max: 5000,
-    key_features: ["Feature 1", "Feature 2"]
-  },
-];
-```
-
-### Scaling to Production
-
-For real-world use, replace the in-memory storage:
-
-#### 1. Vector Database (for document search)
-
-```typescript
-// Instead of simple text matching, use embeddings
-import { OpenAI } from "openai";
-import { ChromaClient } from "chromadb";
-
-// Create embedding for search query
-const embedding = await openai.embeddings.create({
-  model: "text-embedding-3-small",
-  input: query
-});
-
-// Search vector database
-const results = await chromaClient.query({
-  embedding: embedding.data[0].embedding,
-  n_results: 5
-});
-```
-
-**Recommended Vector DBs**:
-- **ChromaDB**: Easy local setup, Python/JS support
-- **Pinecone**: Managed service, scales automatically
-- **Weaviate**: Open-source, powerful
-- **PostgreSQL + pgvector**: If you already use Postgres
-
-#### 2. Real Database (for structured data)
-
-```typescript
-import { Pool } from "pg";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
-
-const products = await pool.query(
-  "SELECT * FROM products WHERE type = $1 AND premium_monthly <= $2",
-  [product_type, max_premium]
-);
-```
-
-#### 3. Document Processing Pipeline
-
-```typescript
-// For PDFs, Word docs, etc.
-import { PDFLoader } from "langchain/document_loaders/fs/pdf";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-
-// Load document
-const loader = new PDFLoader("path/to/policy.pdf");
-const docs = await loader.load();
-
-// Split into chunks
-const splitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 1000,
-  chunkOverlap: 200
-});
-const chunks = await splitter.splitDocuments(docs);
-
-// Store in vector DB with embeddings
-for (const chunk of chunks) {
-  const embedding = await createEmbedding(chunk.pageContent);
-  await vectorDB.add({
-    id: generateId(),
-    content: chunk.pageContent,
-    embedding: embedding,
-    metadata: chunk.metadata
-  });
-}
-```
-
-## 📊 Real-World Implementation Path
-
-### Phase 1: Proof of Concept (1 week)
-- ✅ Use this example project
-- ✅ Add 10-20 real documents
-- ✅ Test with internal team
-- ✅ Measure accuracy
-
-### Phase 2: MVP (2-3 weeks)
-- Replace in-memory DB with PostgreSQL
-- Add ChromaDB for vector search
-- Implement document chunking
-- Add authentication
-- Deploy to internal server
-
-### Phase 3: Production (4-6 weeks)
-- Scale vector DB (Pinecone/Weaviate)
-- Add document update pipeline
-- Build web interface (Slack/Teams integration)
-- Implement usage analytics
-- Add feedback loop for accuracy
-
-### Phase 4: Optimization (ongoing)
-- Fine-tune chunking strategy
-- Optimize embedding model
-- Add caching layer
-- Implement hybrid search (keyword + vector)
-- A/B test prompts
-
-## 💰 Cost Comparison
-
-### Building Your Own AI
-- Training: R1,800,000 - R18,000,000+
-- Infrastructure: R180,000/month
-- Team: 3-5 ML engineers
-- Timeline: 12-24 months
-- **Not recommended for this use case**
-
-### Fine-Tuning GPT-4/Claude
-- Initial training: R90,000 - R360,000
-- Retraining (quarterly): R90,000 each
-- API costs: R9,000-36,000/month
-- Maintenance: Significant
-- **Not ideal - data becomes stale**
-
-### RAG + MCP (This Approach)
-- Setup: 1-4 weeks developer time
-- Infrastructure: R3,600-18,000/month
-  - Vector DB: R900-5,400/month
-  - API calls: R1,800-9,000/month
-  - Hosting: R900-3,600/month
-- Maintenance: Minimal
-- Updates: Real-time, no retraining
-- **Recommended**
-
-## 🔒 Security Considerations
-
-For production deployment:
-
-1. **Authentication**: Add OAuth/API keys
-2. **Rate Limiting**: Prevent abuse
-3. **Data Access Control**: Role-based permissions
-4. **Audit Logging**: Track all queries
-5. **PII Handling**: Redact sensitive information
-
-Example authentication middleware:
-
-```typescript
-function validateApiKey(request: any): boolean {
-  const apiKey = request.headers["x-api-key"];
-  return apiKey && validApiKeys.includes(apiKey);
-}
-```
-
-## 🧪 Testing
-
-Test your MCP server before connecting to Claude:
+### Web Chat Interface (Recommended)
 
 ```bash
-# Use MCP Inspector
-npx @modelcontextprotocol/inspector node build/server.js
-
-# Or test tools directly
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | npm start
+npm run dev
 ```
 
-## 📈 Monitoring & Improvement
+Visit `http://localhost:5173` and chat naturally:
+- "If I break my arm, what will I pay?"
+- "What's the difference between Plan A and Plan B?"
+- "How do I file a claim?"
 
-Track these metrics:
+### Features:
+- Conversational interface
+- Message history
+- Source citations
+- Loading indicators
+- Responsive design
 
-1. **Query Success Rate**: % of questions answered correctly
-2. **Source Accuracy**: Are the right documents being retrieved?
-3. **Response Time**: How fast are searches?
-4. **User Satisfaction**: Thumbs up/down feedback
-5. **Coverage Gaps**: What questions can't be answered?
+## 🛠️ Development
 
-## 🤝 Alternative Approaches
+### Adding Insurance Documents
 
-If MCP doesn't fit your needs:
+Edit `src/lib/insurance/documents-sa.ts` to add more plans or update existing ones.
 
-1. **REST API + OpenAI Function Calling**: Similar pattern, different protocol
-2. **LangChain + Vector Store**: More batteries-included framework
-3. **Semantic Kernel**: Microsoft's orchestration framework
-4. **Custom RAG Pipeline**: Full control, more work
+### Changing the AI Model
 
-MCP is best when:
-- ✅ You want standardization
-- ✅ You use Claude Desktop or compatible clients
-- ✅ You need multiple tool integrations
-- ✅ You want minimal infrastructure
+Edit `src/lib/server/rag.ts`:
 
-## 📚 Next Steps
+```typescript
+const response = await ollama.chat({
+  model: 'llama3.2',  // Change this
+  // ...
+});
+```
 
-1. **Load Your Documents**: Replace sample data with real policies
-2. **Connect to Real Database**: Set up PostgreSQL or similar
-3. **Add Vector Search**: Integrate ChromaDB or Pinecone
-4. **Build User Interface**: Web app, Slack bot, or Teams integration
-5. **Measure & Iterate**: Track accuracy and improve
+### Customizing Prompts
 
-## 🆘 Troubleshooting
+Edit the simplification prompts in:
+- `src/lib/insurance/insurance-glossary-sa.ts` (SA-specific)
+- `src/lib/insurance/insurance-jargon-glossary.ts` (generic)
 
-**Server won't start**:
+## 📚 Documentation
+
+Complete documentation is available in the `docs/` directory:
+
+- **`docs/PROJECT_STRUCTURE.md`** - Detailed project structure and architecture
+- **`docs/SETUP_SA.md`** - Quick start guide for South African users
+- **`docs/SUMMARY.md`** - Complete project overview
+- **`docs/CLAUDE.md`** - Technical implementation details
+- **`docs/ARCHITECTURE_DIAGRAMS.md`** - System architecture diagrams
+- **`docs/OLLAMA_QUICKSTART.md`** - Ollama setup and configuration
+
+## 🏗️ Building for Production
+
 ```bash
-# Check Node version
-node --version  # Should be 18+
-
-# Rebuild
+# Build the app
 npm run build
+
+# Preview production build
+npm run preview
 ```
 
-**Claude doesn't see the server**:
-- Verify config file path is absolute, not relative
-- Restart Claude Desktop
-- Check Claude Desktop logs (Help → View Logs)
+## 🧪 Technology Stack
 
-**Search returns no results**:
-- Check document content has relevant keywords
-- Try simpler queries first
-- Add more documents to the database
+- **SvelteKit** - Full-stack framework
+- **TypeScript** - Type safety
+- **Svelte 5** - Reactive UI with runes
+- **Ollama** - Local AI model runner
+- **RAG Pattern** - Retrieval-augmented generation
 
-## 📖 Resources
+## 📦 Legacy Implementations
 
-- [MCP Documentation](https://modelcontextprotocol.io)
-- [Claude API Docs](https://docs.anthropic.com)
-- [Vector Database Guide](https://www.pinecone.io/learn/vector-database/)
-- [RAG Explained](https://www.anthropic.com/research/retrieval-augmented-generation)
+The `legacy/` directory contains previous CLI and MCP server implementations:
 
-## 🎓 Learning Path
+- **MCP Server** (`server.ts`) - For Claude Desktop integration
+- **CLI Tools** - Command-line versions (`ollama-simple.ts`, `sa-medical-aid.ts`)
+- **Test Scripts** - Testing utilities
 
-1. **Understand this example** (this project)
-2. **Learn vector embeddings** (ChromaDB tutorial)
-3. **Study prompt engineering** (Anthropic docs)
-4. **Build production pipeline** (LangChain/LlamaIndex)
-5. **Optimize for scale** (caching, indexing strategies)
+See `legacy/README.md` for details on using these implementations.
+
+## 🔧 Troubleshooting
+
+### "Cannot connect to Ollama"
+Make sure Ollama is running: `ollama serve`
+
+### "Model not found"
+Pull the model: `ollama pull llama3.2`
+
+### Port already in use
+Change the port: `npm run dev -- --port 3000`
+
+## 🎨 Customization
+
+All styling is in `src/routes/+page.svelte`. The design features:
+- Modern purple gradient header
+- Clean message bubbles
+- Smooth animations
+- Fully responsive layout
+
+## 📝 License
+
+See LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+Built with:
+- [SvelteKit](https://kit.svelte.dev/)
+- [Ollama](https://ollama.ai/)
+- [Svelte 5](https://svelte.dev/)
 
 ---
 
-**Questions?** Open an issue or check the MCP community forums!
+**Made with ❤️ for South Africans who want simple, clear answers about their medical aid.**
