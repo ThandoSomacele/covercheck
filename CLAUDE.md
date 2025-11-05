@@ -1,0 +1,1 @@
+- I want to learn while we go especially when it comes to Document Collection System, Vector Database Setup, and RAG
