@@ -18,45 +18,61 @@ export class DiscoveryHealthScraper extends BaseScraper {
 					url: 'https://www.discovery.co.za/medical-aid',
 					type: 'plan_overview'
 				},
-				// Individual plan pages - these are the main plan options
+				// Individual Plan Pages (7 main plans) - VERIFIED URLS
 				{
-					url: 'https://www.discovery.co.za/medical-aid/medical-aid-plans/executive-plan',
+					url: 'https://www.discovery.co.za/medical-aid/executive-plan',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.discovery.co.za/medical-aid/medical-aid-plans/comprehensive-series',
+					url: 'https://www.discovery.co.za/medical-aid/comprehensive-series',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.discovery.co.za/medical-aid/medical-aid-plans/priority-series',
+					url: 'https://www.discovery.co.za/medical-aid/priority-series',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.discovery.co.za/medical-aid/medical-aid-plans/saver-series',
+					url: 'https://www.discovery.co.za/medical-aid/saver-series',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.discovery.co.za/medical-aid/medical-aid-plans/smart-series',
+					url: 'https://www.discovery.co.za/medical-aid/smart-series',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.discovery.co.za/medical-aid/medical-aid-plans/core-series',
+					url: 'https://www.discovery.co.za/medical-aid/core-series',
 					type: 'plan_overview'
 				},
-				// Benefits information
 				{
-					url: 'https://www.discovery.co.za/medical-aid/benefits-and-limits',
+					url: 'https://www.discovery.co.za/medical-aid/keycare-series',
+					type: 'plan_overview'
+				},
+				// Benefits and coverage - VERIFIED
+				{
+					url: 'https://www.discovery.co.za/medical-aid/benefits-and-cover',
 					type: 'benefits'
 				},
-				// How claims work
+				{
+					url: 'https://www.discovery.co.za/medical-aid/chronic-illness-benefit',
+					type: 'benefits'
+				},
+				{
+					url: 'https://www.discovery.co.za/medical-aid/product-benefit-enhancements',
+					type: 'benefits'
+				},
+				// Claims and support
 				{
 					url: 'https://www.discovery.co.za/medical-aid/how-to-claim',
 					type: 'claims_process'
 				},
-				// Contact information
 				{
-					url: 'https://www.discovery.co.za/medical-aid/contact-us',
-					type: 'contact_info'
+					url: 'https://www.discovery.co.za/medical-aid/ask-discovery-health-for-help',
+					type: 'faq'
+				},
+				// Additional info
+				{
+					url: 'https://www.discovery.co.za/medical-aid/compare-medical-aid-plans',
+					type: 'other'
 				}
 			],
 			selectors: {

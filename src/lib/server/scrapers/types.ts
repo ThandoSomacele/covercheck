@@ -34,15 +34,8 @@ export type DocumentType =
 
 export type InsuranceProvider =
 	| 'Discovery Health'
-	| 'Momentum Health'
-	| 'Bonitas'
-	| 'Fedhealth'
-	| 'Bestmed'
-	| 'Medshield'
-	| 'Compcare'
-	| 'Genesis'
-	| 'Keyhealth'
-	| 'Universal Health';
+	| 'Bonitas Medical Fund'
+	| 'Momentum Health';
 
 export interface ScrapeResult {
 	success: boolean;

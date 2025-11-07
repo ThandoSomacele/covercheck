@@ -16,49 +16,47 @@ export class MomentumHealthScraper extends BaseScraper {
 			targets: [
 				// Main medical aid overview
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/medical-aid-cover',
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid',
 					type: 'plan_overview'
 				},
-				// Individual plan options
+				// Individual Plan Pages (6 main options) - VERIFIED URLS
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/medical-aid-plans/custom',
-					type: 'plan_overview'
-				},
-				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/medical-aid-plans/incentive',
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/custom-option',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/medical-aid-plans/summit',
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/incentive-option',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/medical-aid-plans/extender',
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/summit-option',
 					type: 'plan_overview'
 				},
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/medical-aid-plans/ingwe',
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/extender-option',
 					type: 'plan_overview'
 				},
-				// Benefits and coverage
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/medical-aid-benefits',
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/ingwe-option',
+					type: 'plan_overview'
+				},
+				// Benefits information - VERIFIED
+				{
+					url: 'https://www.momentum.co.za/momentum/personal/products/medical-aid/day-to-day-benefit',
 					type: 'benefits'
 				},
-				// Claims information
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/claims',
-					type: 'claims_process'
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/in-hospital-benefit',
+					type: 'benefits'
 				},
-				// Contact details
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/contact-us',
-					type: 'contact_info'
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/chronic-benefit/chronic-conditions-covered',
+					type: 'benefits'
 				},
-				// FAQ
+				// Plan comparison
 				{
-					url: 'https://www.momentum.co.za/for-you/medical-aid/faq',
-					type: 'faq'
+					url: 'https://www.momentum.co.za/momentum/personal/medical-aid/compare-medical-aid-plans',
+					type: 'other'
 				}
 			],
 			selectors: {

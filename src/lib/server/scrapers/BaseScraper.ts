@@ -150,18 +150,18 @@ export abstract class BaseScraper {
 		try {
 			await page.goto(target.url, {
 				waitUntil: 'domcontentloaded',
-				timeout: 60000
+				timeout: 90000 // Increased from 60s to 90s
 			});
-			// Give the page a moment to render dynamic content
-			await page.waitForTimeout(2000);
+			// Give the page time to render dynamic content (increased for JS-heavy sites)
+			await page.waitForTimeout(5000); // Increased from 2s to 5s
 		} catch (error) {
 			// If navigation fails, try with commit event instead
 			console.log('Retrying with commit event...');
 			await page.goto(target.url, {
 				waitUntil: 'commit',
-				timeout: 60000
+				timeout: 90000
 			});
-			await page.waitForTimeout(3000);
+			await page.waitForTimeout(7000); // Increased from 3s to 7s
 		}
 
 		// Get page content after removing unwanted elements

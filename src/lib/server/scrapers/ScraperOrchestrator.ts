@@ -2,6 +2,7 @@ import type { BaseScraper } from './BaseScraper.js';
 import type { ScrapeResult, ScrapedDocument, InsuranceProvider } from './types.js';
 import { DiscoveryHealthScraper } from './DiscoveryHealthScraper.js';
 import { MomentumHealthScraper } from './MomentumHealthScraper.js';
+import { BonitasScraper } from './BonitasScraper.js';
 
 /**
  * Orchestrates multiple scrapers and manages the scraping process
@@ -21,13 +22,12 @@ export class ScraperOrchestrator {
 	}
 
 	/**
-	 * Register all available scrapers
+	 * Register all available scrapers (Top 3 South African medical aids)
 	 */
 	private registerScrapers(): void {
 		this.scrapers.set('Discovery Health', new DiscoveryHealthScraper());
+		this.scrapers.set('Bonitas Medical Fund', new BonitasScraper());
 		this.scrapers.set('Momentum Health', new MomentumHealthScraper());
-		// Add more scrapers as they're implemented
-		// this.scrapers.set('Bonitas', new BonitasScraper());
 	}
 
 	/**

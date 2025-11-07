@@ -5,6 +5,7 @@
  * Usage:
  *   npm run scrape              # Scrape all providers
  *   npm run scrape discovery    # Scrape Discovery Health only
+ *   npm run scrape bonitas      # Scrape Bonitas Medical Fund only
  *   npm run scrape momentum     # Scrape Momentum Health only
  */
 
@@ -27,6 +28,9 @@ async function main() {
 		if (provider === 'discovery') {
 			console.log('Scraping Discovery Health only...\n');
 			results = [await orchestrator.scrapeProvider('Discovery Health')];
+		} else if (provider === 'bonitas') {
+			console.log('Scraping Bonitas Medical Fund only...\n');
+			results = [await orchestrator.scrapeProvider('Bonitas Medical Fund')];
 		} else if (provider === 'momentum') {
 			console.log('Scraping Momentum Health only...\n');
 			results = [await orchestrator.scrapeProvider('Momentum Health')];
