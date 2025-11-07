@@ -1,174 +1,199 @@
-# 🇿🇦 Insurance Assistant
+# 🇿🇦 CoverCheck - Medical Aid Assistant
 
-**Your medical aid and insurance questions answered simply.**
+**Your South African medical aid questions answered with accurate, up-to-date information.**
 
-A modern AI-powered insurance assistant with both a web chat interface and CLI tools. Built with SvelteKit, TypeScript, and Ollama for 100% private, R0-cost AI responses.
+A modern AI-powered medical aid assistant that helps South Africans understand and compare medical aid plans from the top 3 providers. Built with quality data, semantic search, and RAG (Retrieval-Augmented Generation).
+
+## 🎯 Project Status
+
+**✅ Phase 1 Complete:** High-quality data scraping from top 3 SA medical aid providers
+
+- **23 verified documents** from Discovery Health, Bonitas Medical Fund, and Momentum Health
+- **88% quality rate** with comprehensive plan and benefits information
+- **Zero 404 errors** - all URLs verified and working
+- Ready for Phase 2: Database Setup
+
+**🔄 Phase 2 Next:** PostgreSQL + pgvector database setup for semantic search
 
 ## ✨ Features
 
-- 🌐 **Modern Web Chat Interface** - ChatGPT-style UI for conversational queries
-- 💻 **CLI Tools** - Fast command-line interface for power users (in `legacy/`)
-- 🇿🇦 **South African Context** - Uses Rands (R), SA English, and medical aid terminology
-- 🔒 **100% Private** - Runs locally with Ollama, no data leaves your machine
-- 💰 **R0 Cost** - No API fees, unlimited queries
-- 📚 **Source Citations** - Every answer shows which documents were used
-- ⚡ **Fast & Direct** - Concise answers without jargon
+### Current (Phase 1)
+- 🏥 **Top 3 SA Providers** - Discovery Health, Bonitas Medical Fund, Momentum Health
+- 📊 **Comprehensive Coverage** - All major plans, benefits, and claims information
+- ✅ **Quality Validated** - Medical terminology verified, content accuracy confirmed
+- 🔍 **Smart Scraping** - Resilient scraper with rate limiting and error recovery
+
+### Coming Soon (Phase 2+)
+- 🗄️ **Vector Database** - PostgreSQL + pgvector for semantic search
+- 🤖 **RAG System** - Accurate answers backed by real documentation
+- 🌐 **Web Interface** - Modern SvelteKit chat UI
+- 🇿🇦 **SA Context** - Rands (R), SA English, and medical aid terminology
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-1. **Install Ollama:**
-   ```bash
-   # macOS
-   brew install ollama
-
-   # Linux
-   curl -fsSL https://ollama.com/install.sh | sh
-   ```
-
-2. **Start Ollama and pull a model:**
-   ```bash
-   ollama serve  # In one terminal
-   ollama pull llama3.2  # In another terminal
-   ```
+- Node.js 18+
+- npm or yarn
 
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/ThandoSomacele/covercheck.git
+cd covercheck
+
 # Install dependencies
 npm install
-
-# Start the web chat interface
-npm run dev
 ```
 
-Open your browser to `http://localhost:5173` and start chatting!
+### Running the Scrapers
+
+```bash
+# Scrape all 3 providers
+npm run scrape
+
+# Scrape individual providers
+npm run scrape:discovery
+npm run scrape:bonitas
+npm run scrape:momentum
+
+# Analyze data quality
+npx tsx scripts/validate-content.ts
+npx tsx scripts/analyze-scraped-data.ts
+```
 
 ## 📁 Project Structure
 
 ```
-insurance-mcp/
+covercheck/
 ├── src/
 │   ├── lib/
-│   │   ├── insurance/              # Insurance data and glossaries
+│   │   ├── insurance/              # Static insurance data
 │   │   │   ├── documents-sa.ts     # SA medical aid documents
-│   │   │   ├── insurance-glossary-sa.ts
-│   │   │   └── insurance-jargon-glossary.ts
+│   │   │   └── insurance-*-glossary.ts
 │   │   └── server/
-│   │       └── rag.ts              # RAG logic (search + Ollama)
+│   │       ├── rag.ts              # RAG logic (future)
+│   │       └── scrapers/           # Web scraping system
+│   │           ├── BaseScraper.ts
+│   │           ├── DiscoveryHealthScraper.ts
+│   │           ├── BonitasScraper.ts
+│   │           ├── MomentumHealthScraper.ts
+│   │           └── ScraperOrchestrator.ts
 │   └── routes/
-│       ├── +page.svelte            # Chat UI
-│       └── api/
-│           └── chat/
-│               └── +server.ts       # API endpoint
+│       ├── +page.svelte            # Chat UI (future)
+│       └── api/chat/+server.ts     # API endpoint (future)
+├── scripts/                         # Utility scripts
+│   ├── scrape.ts                   # Main scraping CLI
+│   ├── validate-content.ts         # Quality validation
+│   └── analyze-scraped-data.ts     # Data analysis
 ├── docs/                            # Complete documentation
-├── legacy/                          # Old CLI/MCP implementations
-├── static/                          # Static assets
-├── package.json
-└── README.md                        # This file
+│   ├── README.md                   # Documentation index
+│   ├── SCRAPING.md                 # Scraping system guide
+│   ├── VERIFIED_URLS.md            # Verified provider URLs
+│   └── SCRAPER_FIX_PLAN.md         # Quality improvement process
+├── scraped-data/                    # JSON output (gitignored)
+├── legacy/                          # Old implementations
+└── COVERCHECK_ROADMAP.md           # Development roadmap
 ```
 
-## 🎯 Usage
+## 📊 Data Quality
 
-### Web Chat Interface (Recommended)
+### Current Scrape Results
 
-```bash
-npm run dev
-```
+| Provider | Documents | Quality Rate | Avg. Content |
+|----------|-----------|--------------|--------------|
+| Discovery Health | 13/14 | 93% | 10,000 chars |
+| Momentum Health | 9/10 | 90% | 10,500 chars |
+| Bonitas Medical Fund | 1/2 | 50% | 193,754 chars |
+| **Total** | **23/26** | **88%** | **~10,000 chars** |
 
-Visit `http://localhost:5173` and chat naturally:
-- "If I break my arm, what will I pay?"
-- "What's the difference between Plan A and Plan B?"
-- "How do I file a claim?"
+### Content Coverage
 
-### Features:
-- Conversational interface
-- Message history
-- Source citations
-- Loading indicators
-- Responsive design
+✅ **Plan Information**
+- All major plans from each provider
+- Plan benefits and exclusions
+- Coverage details
 
-## 🛠️ Development
+✅ **Benefits Documentation**
+- Hospital benefits
+- Day-to-day benefits
+- Chronic illness benefits
 
-### Adding Insurance Documents
+✅ **Support Information**
+- Claims processes
+- Comparison tools
+- Contact information
 
-Edit `src/lib/insurance/documents-sa.ts` to add more plans or update existing ones.
+## 🛠️ Development Roadmap
 
-### Changing the AI Model
+### ✅ Phase 1: Data Scraping (Complete)
+- [x] Research and verify provider URLs
+- [x] Build scraping system with Playwright
+- [x] Implement quality validation
+- [x] Scrape top 3 SA providers
+- [x] Achieve 20+ quality documents
 
-Edit `src/lib/server/rag.ts`:
+### 🔄 Phase 2: Database Setup (Next)
+- [ ] Set up PostgreSQL + pgvector
+- [ ] Design database schema
+- [ ] Process and chunk documents
+- [ ] Generate embeddings
+- [ ] Implement semantic search
 
-```typescript
-const response = await ollama.chat({
-  model: 'llama3.2',  // Change this
-  // ...
-});
-```
+### 📅 Phase 3: RAG Implementation
+- [ ] Build RAG pipeline
+- [ ] Integrate with Ollama/OpenRouter
+- [ ] Implement query processing
+- [ ] Add source citations
 
-### Customizing Prompts
+### 📅 Phase 4: Web Interface
+- [ ] SvelteKit frontend
+- [ ] Chat UI with message history
+- [ ] API endpoints
+- [ ] User authentication
+- [ ] Deploy to production
 
-Edit the simplification prompts in:
-- `src/lib/insurance/insurance-glossary-sa.ts` (SA-specific)
-- `src/lib/insurance/insurance-jargon-glossary.ts` (generic)
+See [`COVERCHECK_ROADMAP.md`](COVERCHECK_ROADMAP.md) for detailed roadmap.
 
 ## 📚 Documentation
 
-Complete documentation is available in the `docs/` directory:
+All documentation is in the [`docs/`](docs/) directory:
 
-- **`docs/PROJECT_STRUCTURE.md`** - Detailed project structure and architecture
-- **`docs/SETUP_SA.md`** - Quick start guide for South African users
-- **`docs/SUMMARY.md`** - Complete project overview
-- **`docs/CLAUDE.md`** - Technical implementation details
-- **`docs/ARCHITECTURE_DIAGRAMS.md`** - System architecture diagrams
-- **`docs/OLLAMA_QUICKSTART.md`** - Ollama setup and configuration
-
-## 🏗️ Building for Production
-
-```bash
-# Build the app
-npm run build
-
-# Preview production build
-npm run preview
-```
+- **[docs/README.md](docs/README.md)** - Documentation index
+- **[docs/SCRAPING.md](docs/SCRAPING.md)** - Complete scraping guide
+- **[docs/VERIFIED_URLS.md](docs/VERIFIED_URLS.md)** - Working provider URLs
+- **[docs/SCRAPER_FIX_PLAN.md](docs/SCRAPER_FIX_PLAN.md)** - Quality improvement process
+- **[docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)** - Project goals and architecture
+- **[docs/SETUP_SA.md](docs/SETUP_SA.md)** - SA-specific setup guide
 
 ## 🧪 Technology Stack
 
+**Current:**
 - **SvelteKit** - Full-stack framework
 - **TypeScript** - Type safety
-- **Svelte 5** - Reactive UI with runes
+- **Playwright** - Web scraping
+- **Cheerio** - HTML parsing
+
+**Planned:**
+- **PostgreSQL + pgvector** - Vector database
 - **Ollama** - Local AI model runner
-- **RAG Pattern** - Retrieval-augmented generation
+- **OpenRouter** - Cloud AI API (alternative)
+- **Svelte 5** - Reactive UI
 
-## 📦 Legacy Implementations
+## 🔧 Adding New Providers
 
-The `legacy/` directory contains previous CLI and MCP server implementations:
+Want to add another medical aid provider? See the [Adding New Scrapers](docs/SCRAPING.md#adding-new-scrapers) guide.
 
-- **MCP Server** (`server.ts`) - For Claude Desktop integration
-- **CLI Tools** - Command-line versions (`ollama-simple.ts`, `sa-medical-aid.ts`)
-- **Test Scripts** - Testing utilities
+Quick overview:
+1. Create a new scraper class extending `BaseScraper`
+2. Define target URLs and selectors
+3. Register in `ScraperOrchestrator`
+4. Test and validate quality
 
-See `legacy/README.md` for details on using these implementations.
+## 🤝 Contributing
 
-## 🔧 Troubleshooting
-
-### "Cannot connect to Ollama"
-Make sure Ollama is running: `ollama serve`
-
-### "Model not found"
-Pull the model: `ollama pull llama3.2`
-
-### Port already in use
-Change the port: `npm run dev -- --port 3000`
-
-## 🎨 Customization
-
-All styling is in `src/routes/+page.svelte`. The design features:
-- Modern purple gradient header
-- Clean message bubbles
-- Smooth animations
-- Fully responsive layout
+This is a learning project documenting the journey of building a production RAG system. Contributions, suggestions, and feedback are welcome!
 
 ## 📝 License
 
@@ -178,9 +203,17 @@ See LICENSE file for details.
 
 Built with:
 - [SvelteKit](https://kit.svelte.dev/)
-- [Ollama](https://ollama.ai/)
-- [Svelte 5](https://svelte.dev/)
+- [Playwright](https://playwright.dev/)
+- [Cheerio](https://cheerio.js.org/)
+
+Data sourced from:
+- [Discovery Health](https://www.discovery.co.za/medical-aid)
+- [Bonitas Medical Fund](https://www.bonitas.co.za)
+- [Momentum Health](https://www.momentum.co.za)
 
 ---
 
-**Made with ❤️ for South Africans who want simple, clear answers about their medical aid.**
+**Made with ❤️ for South Africans who deserve simple, accurate medical aid information.**
+
+**Current Version:** Phase 1 Complete
+**Last Updated:** 2025-11-07

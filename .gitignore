@@ -32,3 +32,11 @@ coverage/
 
 # Scraped data
 scraped-data/
+
+# Debug/temporary files
+*.png
+page-screenshot.png
+debug-*.json
+
+# SvelteKit
+.svelte-kit/
