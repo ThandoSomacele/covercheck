@@ -10,18 +10,26 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"scrape": "tsx scripts/scrape.ts",
+		"scrape:discovery": "tsx scripts/scrape.ts discovery",
+		"scrape:momentum": "tsx scripts/scrape.ts momentum"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/kit": "^2.47.1",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
+		"@types/node": "^24.10.0",
 		"svelte": "^5.41.0",
 		"svelte-check": "^4.3.3",
+		"tsx": "^4.20.6",
 		"typescript": "^5.9.3",
 		"vite": "^7.1.10"
 	},
 	"dependencies": {
-		"ollama": "^0.6.2"
+		"@playwright/test": "^1.56.1",
+		"cheerio": "^1.1.2",
+		"ollama": "^0.6.2",
+		"playwright": "^1.56.1"
 	}
 }
