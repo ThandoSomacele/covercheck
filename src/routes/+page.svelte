@@ -1,7 +1,28 @@
 <script lang="ts">
-	let messages = $state<Array<{ role: 'user' | 'assistant'; content: string; sources?: string[] }>>([]);
+	interface Source {
+		title: string;
+		url: string;
+		provider: string;
+		relevance: number;
+	}
+
+	interface Message {
+		role: 'user' | 'assistant';
+		content: string;
+		sources?: Source[];
+	}
+
+	let messages = $state<Message[]>([]);
 	let input = $state('');
 	let loading = $state(false);
+	let selectedProvider = $state<string>('all');
+
+	const providers = [
+		{ value: 'all', label: '🌐 All Providers' },
+		{ value: 'Discovery Health', label: '💎 Discovery Health' },
+		{ value: 'Bonitas Medical Fund', label: '🏥 Bonitas Medical Fund' },
+		{ value: 'Keycare', label: '🔑 Keycare' }
+	];
 
 	async function sendMessage() {
 		if (!input.trim() || loading) return;
@@ -19,7 +40,10 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ message: userMessage })
+				body: JSON.stringify({
+					message: userMessage,
+					provider: selectedProvider === 'all' ? undefined : selectedProvider
+				})
 			});
 
 			const data = await response.json();
@@ -59,23 +83,38 @@
 
 <div class="chat-container">
 	<header>
-		<h1>🇿🇦 Insurance Assistant</h1>
-		<p>Your medical aid and insurance questions answered simply</p>
+		<h1>🏥 CoverCheck</h1>
+		<p>Find answers about South African medical aid plans with official sources</p>
+
+		<div class="provider-selector">
+			<label for="provider">Search in:</label>
+			<select id="provider" bind:value={selectedProvider}>
+				{#each providers as provider}
+					<option value={provider.value}>{provider.label}</option>
+				{/each}
+			</select>
+		</div>
 	</header>
 
 	<div class="messages">
 		{#if messages.length === 0}
 			<div class="welcome">
-				<h2>👋 Hello! How can I help you today?</h2>
+				<h2>👋 Welcome to CoverCheck!</h2>
+				<p class="welcome-subtitle">
+					Ask me anything about South African medical aid plans. I'll provide answers with official sources.
+				</p>
 				<div class="suggestions">
-					<button onclick={() => { input = "If I break my arm, what will I pay?"; sendMessage(); }}>
-						💰 Cost example
+					<button onclick={() => { input = "What chronic conditions are covered by Discovery Health?"; sendMessage(); }}>
+						💊 Chronic condition coverage
 					</button>
-					<button onclick={() => { input = "What's the difference between Plan A and Plan B?"; sendMessage(); }}>
-						📊 Compare plans
+					<button onclick={() => { input = "What are the hospital benefits for KeyCare plans?"; sendMessage(); }}>
+						🏥 Hospital benefits
 					</button>
-					<button onclick={() => { input = "How do I file a claim?"; sendMessage(); }}>
-						📋 Filing claims
+					<button onclick={() => { input = "How much does maternity cover cost on Bonitas?"; sendMessage(); }}>
+						👶 Maternity coverage
+					</button>
+					<button onclick={() => { input = "Compare day-to-day benefits across different plans"; sendMessage(); }}>
+						📊 Compare benefits
 					</button>
 				</div>
 			</div>
@@ -87,12 +126,21 @@
 					</div>
 					{#if message.sources && message.sources.length > 0}
 						<div class="sources">
-							<strong>Sources:</strong>
-							<ul>
-								{#each message.sources as source}
-									<li>{source}</li>
+							<strong>📚 Sources:</strong>
+							<div class="source-links">
+								{#each message.sources as source, i}
+									<a
+										href={source.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="source-link"
+										title="{source.provider} - {Math.round(source.relevance * 100)}% relevant"
+									>
+										{i + 1}. {source.title}
+										<span class="provider-badge">{source.provider}</span>
+									</a>
 								{/each}
-							</ul>
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -155,9 +203,43 @@
 	}
 
 	header p {
-		margin: 0;
+		margin: 0 0 1rem 0;
 		opacity: 0.9;
 		font-size: 0.95rem;
+	}
+
+	.provider-selector {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		margin-top: 1rem;
+	}
+
+	.provider-selector label {
+		font-size: 0.9rem;
+		opacity: 0.9;
+	}
+
+	.provider-selector select {
+		padding: 0.5rem 1rem;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		background: rgba(255, 255, 255, 0.2);
+		color: white;
+		border-radius: 6px;
+		font-size: 0.9rem;
+		cursor: pointer;
+		outline: none;
+		transition: all 0.2s;
+	}
+
+	.provider-selector select:hover {
+		background: rgba(255, 255, 255, 0.3);
+	}
+
+	.provider-selector select option {
+		background: #667eea;
+		color: white;
 	}
 
 	.messages {
@@ -176,8 +258,15 @@
 
 	.welcome h2 {
 		color: #333;
-		margin-bottom: 2rem;
+		margin-bottom: 0.75rem;
 		font-weight: 500;
+	}
+
+	.welcome-subtitle {
+		color: #6b7280;
+		font-size: 0.95rem;
+		margin-bottom: 2rem;
+		line-height: 1.5;
 	}
 
 	.suggestions {
@@ -272,15 +361,48 @@
 		font-size: 0.85rem;
 		color: #6b7280;
 		padding-left: 1.25rem;
+		margin-top: 0.75rem;
 	}
 
-	.sources ul {
-		margin: 0.5rem 0 0 0;
-		padding-left: 1.5rem;
+	.sources strong {
+		display: block;
+		margin-bottom: 0.5rem;
+		color: #374151;
 	}
 
-	.sources li {
-		margin: 0.25rem 0;
+	.source-links {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.source-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		background: white;
+		border: 1px solid #e5e7eb;
+		border-radius: 6px;
+		text-decoration: none;
+		color: #667eea;
+		transition: all 0.2s;
+		font-size: 0.9rem;
+	}
+
+	.source-link:hover {
+		background: #f9fafb;
+		border-color: #667eea;
+		transform: translateX(4px);
+	}
+
+	.provider-badge {
+		margin-left: auto;
+		padding: 0.25rem 0.5rem;
+		background: #f3f4f6;
+		border-radius: 4px;
+		font-size: 0.75rem;
+		color: #6b7280;
 	}
 
 	.input-form {
