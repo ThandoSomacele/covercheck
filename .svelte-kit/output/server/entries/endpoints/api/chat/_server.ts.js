@@ -30,7 +30,7 @@ Answer based ONLY on the provided documents below.
 `;
 }
 const DB_CONNECTION_STRING = "postgresql://postgres.dlwldjpjqdgzvfvwajnr:CNGiUm8G3a0cIk@aws-1-us-east-2.pooler.supabase.com:6543/postgres";
-const OPENROUTER_API_KEY = "your_openrouter_api_key_here";
+const OPENROUTER_API_KEY = "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";
 const { Client } = pg;
 async function semanticSearch(query, limit = 5, providerFilter) {
   const ollama = new Ollama();
@@ -74,6 +74,12 @@ async function semanticSearch(query, limit = 5, providerFilter) {
     await db.end();
   }
 }
+const FREE_MODELS = [
+  "google/gemini-2.0-flash-exp:free",
+  "meta-llama/llama-3.2-3b-instruct:free",
+  "mistralai/mistral-7b-instruct:free",
+  "google/gemini-flash-1.5:free"
+];
 async function* queryInsuranceStream(question, providerFilter) {
   const relevantChunks = await semanticSearch(question, 5, providerFilter);
   const sourcesMap = /* @__PURE__ */ new Map();
@@ -124,27 +130,49 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
       "X-Title": "CoverCheck"
     }
   });
-  const stream = await openrouter.chat.completions.create({
-    model: "meta-llama/llama-3.2-3b-instruct:free",
-    messages: [
-      {
-        role: "user",
-        content: prompt
+  let lastError = null;
+  for (const model of FREE_MODELS) {
+    try {
+      const stream = await openrouter.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1e3,
+        stream: true
+      });
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          yield {
+            type: "chunk",
+            data: content
+          };
+        }
       }
-    ],
-    temperature: 0.7,
-    max_tokens: 1e3,
-    stream: true
-  });
-  for await (const chunk of stream) {
-    const content = chunk.choices[0]?.delta?.content;
-    if (content) {
       yield {
-        type: "chunk",
-        data: content
+        type: "done",
+        data: null
       };
+      return;
+    } catch (error) {
+      lastError = error;
+      if (error.status === 429) {
+        console.log(`Model ${model} is rate-limited, trying next model...`);
+        continue;
+      }
+      throw error;
     }
   }
+  console.error("All models failed:", lastError);
+  yield {
+    type: "chunk",
+    data: "I'm experiencing high demand right now. Please try again in a moment, or consider adding your own API key for guaranteed access."
+  };
   yield {
     type: "done",
     data: null

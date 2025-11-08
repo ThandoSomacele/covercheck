@@ -114,6 +114,41 @@
 			sendMessage();
 		}
 	}
+
+	/**
+	 * Convert source references like "Source 1" into clickable links
+	 */
+	function linkifySourceReferences(content: string, sources: Source[]): string {
+		if (!content || !sources || sources.length === 0) return content;
+
+		// Escape HTML to prevent XSS
+		const escaped = content
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#039;');
+
+		// Replace "Source X" with clickable link
+		// Matches: "Source 1", "source 1", "Source 1:", "Source 1,", etc.
+		return escaped.replace(
+			/\b(source|Source)\s+(\d+)\b/gi,
+			(match, sourceWord, num) => {
+				const sourceIndex = parseInt(num) - 1;
+				if (sourceIndex >= 0 && sourceIndex < sources.length) {
+					const source = sources[sourceIndex];
+					return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="inline-source-link" title="${source.title} (${source.provider})">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+							<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+						</svg>
+						${sourceWord} ${num}
+					</a>`;
+				}
+				return match;
+			}
+		);
+	}
 </script>
 
 <div class="chat-container">
@@ -157,7 +192,11 @@
 			{#each messages as message}
 				<div class="message message-{message.role}">
 					<div class="message-content">
-						{message.content}
+						{#if message.role === 'assistant' && message.sources && message.sources.length > 0}
+							{@html linkifySourceReferences(message.content, message.sources)}
+						{:else}
+							{message.content}
+						{/if}
 					</div>
 					{#if message.sources && message.sources.length > 0}
 						<div class="sources">
@@ -169,6 +208,7 @@
 										target="_blank"
 										rel="noopener noreferrer"
 										class="source-link"
+										id="source-{i + 1}"
 										title="{source.provider} - {Math.round(source.relevance * 100)}% relevant"
 									>
 										{i + 1}. {source.title}
@@ -438,6 +478,37 @@
 		border-radius: 4px;
 		font-size: 0.75rem;
 		color: #6b7280;
+	}
+
+	/* Inline source links within message content */
+	:global(.inline-source-link) {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		color: #667eea;
+		text-decoration: none;
+		font-weight: 500;
+		padding: 0.125rem 0.375rem;
+		border-radius: 4px;
+		transition: all 0.2s;
+		background: rgba(102, 126, 234, 0.1);
+		border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+	}
+
+	:global(.inline-source-link:hover) {
+		background: rgba(102, 126, 234, 0.2);
+		border-bottom-color: #667eea;
+		transform: translateY(-1px);
+	}
+
+	:global(.inline-source-link svg) {
+		width: 14px;
+		height: 14px;
+		opacity: 0.7;
+	}
+
+	:global(.inline-source-link:hover svg) {
+		opacity: 1;
 	}
 
 	.input-form {

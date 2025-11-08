@@ -1,5 +1,10 @@
 import { y as ensure_array_like, z as attr_class, F as stringify, x as attr } from "../../chunks/index.js";
 import { e as escape_html } from "../../chunks/context.js";
+function html(value) {
+  var html2 = String(value ?? "");
+  var open = "<!---->";
+  return open + html2 + "<!---->";
+}
 function _page($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     let messages = [];
@@ -15,6 +20,24 @@ function _page($$renderer, $$props) {
       },
       { value: "Keycare", label: "🔑 Keycare" }
     ];
+    function linkifySourceReferences(content, sources) {
+      if (!content || !sources || sources.length === 0) return content;
+      const escaped = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      return escaped.replace(/\b(source|Source)\s+(\d+)\b/gi, (match, sourceWord, num) => {
+        const sourceIndex = parseInt(num) - 1;
+        if (sourceIndex >= 0 && sourceIndex < sources.length) {
+          const source = sources[sourceIndex];
+          return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="inline-source-link" title="${source.title} (${source.provider})">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+							<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+						</svg>
+						${sourceWord} ${num}
+					</a>`;
+        }
+        return match;
+      });
+    }
     $$renderer2.push(`<div class="chat-container svelte-1uha8ag"><header class="svelte-1uha8ag"><h1 class="svelte-1uha8ag">🏥 CoverCheck</h1> <p class="svelte-1uha8ag">Find answers about South African medical aid plans with official sources</p> <div class="provider-selector svelte-1uha8ag"><label for="provider" class="svelte-1uha8ag">Search in:</label> `);
     $$renderer2.select(
       { id: "provider", value: selectedProvider, class: "" },
@@ -45,14 +68,22 @@ function _page($$renderer, $$props) {
       const each_array_1 = ensure_array_like(messages);
       for (let $$index_2 = 0, $$length = each_array_1.length; $$index_2 < $$length; $$index_2++) {
         let message = each_array_1[$$index_2];
-        $$renderer2.push(`<div${attr_class(`message message-${stringify(message.role)}`, "svelte-1uha8ag")}><div class="message-content svelte-1uha8ag">${escape_html(message.content)}</div> `);
+        $$renderer2.push(`<div${attr_class(`message message-${stringify(message.role)}`, "svelte-1uha8ag")}><div class="message-content svelte-1uha8ag">`);
+        if (message.role === "assistant" && message.sources && message.sources.length > 0) {
+          $$renderer2.push("<!--[-->");
+          $$renderer2.push(`${html(linkifySourceReferences(message.content, message.sources))}`);
+        } else {
+          $$renderer2.push("<!--[!-->");
+          $$renderer2.push(`${escape_html(message.content)}`);
+        }
+        $$renderer2.push(`<!--]--></div> `);
         if (message.sources && message.sources.length > 0) {
           $$renderer2.push("<!--[-->");
           $$renderer2.push(`<div class="sources svelte-1uha8ag"><strong class="svelte-1uha8ag">📚 Sources:</strong> <div class="source-links svelte-1uha8ag"><!--[-->`);
           const each_array_2 = ensure_array_like(message.sources);
           for (let i = 0, $$length2 = each_array_2.length; i < $$length2; i++) {
             let source = each_array_2[i];
-            $$renderer2.push(`<a${attr("href", source.url)} target="_blank" rel="noopener noreferrer" class="source-link svelte-1uha8ag"${attr("title", `${stringify(source.provider)} - ${stringify(Math.round(source.relevance * 100))}% relevant`)}>${escape_html(i + 1)}. ${escape_html(source.title)} <span class="provider-badge svelte-1uha8ag">${escape_html(source.provider)}</span></a>`);
+            $$renderer2.push(`<a${attr("href", source.url)} target="_blank" rel="noopener noreferrer" class="source-link svelte-1uha8ag"${attr("id", `source-${stringify(i + 1)}`)}${attr("title", `${stringify(source.provider)} - ${stringify(Math.round(source.relevance * 100))}% relevant`)}>${escape_html(i + 1)}. ${escape_html(source.title)} <span class="provider-badge svelte-1uha8ag">${escape_html(source.provider)}</span></a>`);
           }
           $$renderer2.push(`<!--]--></div></div>`);
         } else {
