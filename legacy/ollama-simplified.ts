@@ -14,7 +14,7 @@
 
 import { Ollama } from 'ollama';
 import * as readline from 'readline';
-import { getSimplificationPrompt, findJargonInText, insuranceGlossary } from './insurance-jargon-glossary.js';
+import { getSimplificationPrompt, insuranceGlossary } from './insurance-jargon-glossary.js';
 
 // Same document/product databases as ollama-simple.ts
 interface Document {
@@ -37,8 +37,8 @@ interface Product {
 
 const documentsDB: Document[] = [
   {
-    id: "doc-001",
-    title: "Health Insurance Plan A - Coverage Details",
+    id: 'doc-001',
+    title: 'Health Insurance Plan A - Coverage Details',
     content: `Health Insurance Plan A provides comprehensive coverage for:
 
 - Inpatient hospitalisation: 100% coverage after R9,000 deductible
@@ -50,12 +50,12 @@ const documentsDB: Document[] = [
 - Network: PPO with 50,000+ providers nationwide
 
 Premium: R8,100/month individual, R21,600/month family`,
-    category: "health_insurance",
-    metadata: { plan_type: "PPO", annual_cost: 5400 }
+    category: 'health_insurance',
+    metadata: { plan_type: 'PPO', annual_cost: 5400 },
   },
   {
-    id: "doc-002",
-    title: "Health Insurance Plan B - Coverage Details",
+    id: 'doc-002',
+    title: 'Health Insurance Plan B - Coverage Details',
     content: `Health Insurance Plan B is our high-deductible health plan with HSA:
 
 - Annual deductible: R54,000 individual / R108,000 family
@@ -68,12 +68,12 @@ Premium: R8,100/month individual, R21,600/month family`,
 Premium: R4,500/month individual, R12,600/month family
 
 Best for: Healthy individuals who want lower premiums and HSA tax benefits`,
-    category: "health_insurance",
-    metadata: { plan_type: "HDHP", annual_cost: 3000 }
+    category: 'health_insurance',
+    metadata: { plan_type: 'HDHP', annual_cost: 3000 },
   },
   {
-    id: "doc-003",
-    title: "Dental Insurance Standard Plan",
+    id: 'doc-003',
+    title: 'Dental Insurance Standard Plan',
     content: `Standard Dental Insurance Coverage:
 
 - Preventive care (cleanings, exams): 100% coverage, 2x per year
@@ -84,12 +84,12 @@ Best for: Healthy individuals who want lower premiums and HSA tax benefits`,
 - Network: 30,000+ dentists nationwide
 
 Premium: R630/month individual, R1,620/month family`,
-    category: "dental_insurance",
-    metadata: { annual_max: 2000, preventive_coverage: 100 }
+    category: 'dental_insurance',
+    metadata: { annual_max: 2000, preventive_coverage: 100 },
   },
   {
-    id: "doc-004",
-    title: "Life Insurance Term Policy Guide",
+    id: 'doc-004',
+    title: 'Life Insurance Term Policy Guide',
     content: `Term Life Insurance Options:
 
 10-Year Term:
@@ -111,12 +111,12 @@ Premium: R630/month individual, R1,620/month family`,
 Pricing example (age 35, non-smoker):
 - R9,000,000 / 20-year: R630/month
 - R18,000,000 / 20-year: R1,080/month`,
-    category: "life_insurance",
-    metadata: { type: "term", renewable: true }
+    category: 'life_insurance',
+    metadata: { type: 'term', renewable: true },
   },
   {
-    id: "doc-005",
-    title: "Claims Filing Procedures",
+    id: 'doc-005',
+    title: 'Claims Filing Procedures',
     content: `How to File an Insurance Claim:
 
 HEALTH INSURANCE CLAIMS:
@@ -139,39 +139,39 @@ LIFE INSURANCE CLAIMS:
 3. Payment issued within 30 days of complete documentation
 
 Claims support: claims@ourinsurance.com or 1-800-555-HELP`,
-    category: "procedures",
-    metadata: { topic: "claims" }
-  }
+    category: 'procedures',
+    metadata: { topic: 'claims' },
+  },
 ];
 
 const productsDB: Product[] = [
   {
-    id: "prod-health-a",
-    name: "Health Plan A - Comprehensive PPO",
-    type: "health",
+    id: 'prod-health-a',
+    name: 'Health Plan A - Comprehensive PPO',
+    type: 'health',
     premium_monthly: 450,
     deductible: 500,
     coverage_max: 5000,
-    key_features: ["Low deductible", "Wide network", "Prescription coverage", "No referrals needed"]
+    key_features: ['Low deductible', 'Wide network', 'Prescription coverage', 'No referrals needed'],
   },
   {
-    id: "prod-health-b",
-    name: "Health Plan B - HDHP with HSA",
-    type: "health",
+    id: 'prod-health-b',
+    name: 'Health Plan B - HDHP with HSA',
+    type: 'health',
     premium_monthly: 250,
     deductible: 3000,
     coverage_max: 6000,
-    key_features: ["Lower premium", "HSA eligible", "Employer contribution", "100% after deductible"]
+    key_features: ['Lower premium', 'HSA eligible', 'Employer contribution', '100% after deductible'],
   },
   {
-    id: "prod-dental-std",
-    name: "Dental Standard",
-    type: "dental",
+    id: 'prod-dental-std',
+    name: 'Dental Standard',
+    type: 'dental',
     premium_monthly: 35,
     deductible: 50,
     coverage_max: 2000,
-    key_features: ["100% preventive", "Orthodontia included", "Large network"]
-  }
+    key_features: ['100% preventive', 'Orthodontia included', 'Large network'],
+  },
 ];
 
 // Search function
@@ -180,7 +180,7 @@ function searchDocuments(query: string, limit: number = 3): Document[] {
   const queryTerms = queryLower.split(/\s+/);
 
   const scored = documentsDB.map(doc => {
-    const contentLower = (doc.title + " " + doc.content).toLowerCase();
+    const contentLower = (doc.title + ' ' + doc.content).toLowerCase();
     const score = queryTerms.reduce((acc, term) => {
       const matches = (contentLower.match(new RegExp(term, 'g')) || []).length;
       return acc + matches;
@@ -213,9 +213,7 @@ async function askInsuranceSimplified(question: string, model: string = 'llama3.
   relevantDocs.forEach(doc => console.log(`   - ${doc.title}`));
 
   // Build context
-  const context = relevantDocs.map(doc =>
-    `Document: ${doc.title}\n${doc.content}`
-  ).join('\n\n---\n\n');
+  const context = relevantDocs.map(doc => `Document: ${doc.title}\n${doc.content}`).join('\n\n---\n\n');
 
   // Get the simplification instructions
   const simplificationPrompt = getSimplificationPrompt();
@@ -235,11 +233,13 @@ YOUR ANSWER (Remember: Simple language first, then details!):`;
   try {
     const response = await ollama.chat({
       model: model,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }],
-      stream: false
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      stream: false,
     });
 
     return response.message.content;
@@ -285,14 +285,14 @@ Example questions (ask naturally!):
   - "Can I see any doctor or just specific ones?"
 `);
 
-  let currentModel = 'llama3.2';
+  let currentModel = 'llama3.1:8b';
 
   // Check models
   try {
     const models = await ollama.list();
     const modelNames = models.models.map((m: any) => m.name);
 
-    if (!modelNames.some((m: string) => m.includes('llama3.2'))) {
+    if (!modelNames.some((m: string) => m.includes('llama3.1:8b'))) {
       if (!modelNames.some((m: string) => m.includes('llama3.1'))) {
         if (modelNames.length > 0) {
           currentModel = modelNames[0].split(':')[0];
@@ -313,7 +313,7 @@ Example questions (ask naturally!):
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: '\n❓ Ask me anything: '
+    prompt: '\n❓ Ask me anything: ',
   });
 
   rl.prompt();
@@ -327,7 +327,7 @@ Example questions (ask naturally!):
     }
 
     if (query.toLowerCase() === 'exit') {
-      console.log('\n👋 Take care! Remember, insurance doesn\'t have to be confusing.');
+      console.log("\n👋 Take care! Remember, insurance doesn't have to be confusing.");
       process.exit(0);
     }
 

@@ -11,8 +11,8 @@
 
 import { Ollama } from 'ollama';
 import * as readline from 'readline';
+import { documentsDB_SA } from './documents-sa.js';
 import { getSimplificationPromptSA, medicalAidGlossary } from './insurance-glossary-sa.js';
-import { documentsDB_SA, productsDB_SA } from './documents-sa.js';
 
 // Search function
 function searchDocuments(query: string, limit: number = 3) {
@@ -20,7 +20,7 @@ function searchDocuments(query: string, limit: number = 3) {
   const queryTerms = queryLower.split(/\s+/);
 
   const scored = documentsDB_SA.map(doc => {
-    const contentLower = (doc.title + " " + doc.content).toLowerCase();
+    const contentLower = (doc.title + ' ' + doc.content).toLowerCase();
     const score = queryTerms.reduce((acc, term) => {
       const matches = (contentLower.match(new RegExp(term, 'g')) || []).length;
       return acc + matches;
@@ -40,7 +40,7 @@ function searchDocuments(query: string, limit: number = 3) {
 const ollama = new Ollama({ host: 'http://localhost:11434' });
 
 // Main RAG function
-async function askMedicalAid(question: string, model: string = 'llama3.2'): Promise<string> {
+async function askMedicalAid(question: string, model: string = 'llama3.1:8b'): Promise<string> {
   console.log('\n🔍 Searching medical aid documents...');
 
   const relevantDocs = searchDocuments(question, 3);
@@ -52,9 +52,7 @@ async function askMedicalAid(question: string, model: string = 'llama3.2'): Prom
   console.log(`✅ Found ${relevantDocs.length} relevant document(s)`);
   relevantDocs.forEach(doc => console.log(`   - ${doc.title}`));
 
-  const context = relevantDocs.map(doc =>
-    `Document: ${doc.title}\n${doc.content}`
-  ).join('\n\n---\n\n');
+  const context = relevantDocs.map(doc => `Document: ${doc.title}\n${doc.content}`).join('\n\n---\n\n');
 
   const simplificationPrompt = getSimplificationPromptSA();
 
@@ -72,11 +70,13 @@ YOUR ANSWER (Remember: Simple Rand amounts, SA English, no American terms!):`;
   try {
     const response = await ollama.chat({
       model: model,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }],
-      stream: false
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      stream: false,
     });
 
     return response.message.content;
@@ -127,21 +127,21 @@ Example questions (ask naturally!):
   - "How do I know which plan is better for me?"
 `);
 
-  let currentModel = 'llama3.2';
+  let currentModel = 'llama3.1:8b';
 
   // Check models
   try {
     const models = await ollama.list();
     const modelNames = models.models.map((m: any) => m.name);
 
-    if (!modelNames.some((m: string) => m.includes('llama3.2'))) {
+    if (!modelNames.some((m: string) => m.includes('llama3.1:8b'))) {
       if (!modelNames.some((m: string) => m.includes('llama3.1'))) {
         if (modelNames.length > 0) {
           currentModel = modelNames[0].split(':')[0];
           console.log(`ℹ️  Using ${currentModel} (default models not found)\n`);
         } else {
           console.log(`\n❌ No models found!`);
-          console.log(`   Install one: ollama pull llama3.2\n`);
+          console.log(`   Install one: ollama pull llama3.1:8b\n`);
           process.exit(1);
         }
       } else {
@@ -157,7 +157,7 @@ Example questions (ask naturally!):
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: '\n❓ Ask me anything: '
+    prompt: '\n❓ Ask me anything: ',
   });
 
   rl.prompt();
@@ -171,7 +171,7 @@ Example questions (ask naturally!):
     }
 
     if (query.toLowerCase() === 'exit') {
-      console.log('\n👋 Take care! Medical aid doesn\'t have to be confusing.');
+      console.log("\n👋 Take care! Medical aid doesn't have to be confusing.");
       process.exit(0);
     }
 

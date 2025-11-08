@@ -317,7 +317,7 @@ npm run build
 ollama list  # Check models
 
 # 2. Pull a model if needed
-ollama pull llama3.1  # or llama3.2, mistral, phi3
+ollama pull llama3.1:8b  # or llama3.2, mistral, phi3
 
 # 3. Test the integration
 npm run test-ollama

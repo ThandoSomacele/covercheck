@@ -15,11 +15,11 @@ const ollama = new Ollama({ host: 'http://localhost:11434' });
 // Confusing questions real people ask
 const confusingQuestions = [
   "What's a deductible and why do I have to pay it?",
-  "If I break my arm, what will I actually pay?",
+  'If I break my arm, what will I actually pay?',
   "What's the difference between Plan A and Plan B?",
-  "Can I see any doctor or just specific ones?",
+  'Can I see any doctor or just specific ones?',
   "What does 'out-of-pocket maximum' mean?",
-  "Why is Plan B cheaper? Is it worse?"
+  'Why is Plan B cheaper? Is it worse?',
 ];
 
 async function runDemo() {
@@ -49,18 +49,18 @@ Let's try a confusing question that trips up most people...
 `);
 
   // Pick a challenging question
-  const question = "If I break my arm, what will I actually pay?";
+  const question = 'If I break my arm, what will I actually pay?';
 
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log(`\n❓ QUESTION: "${question}"`);
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log('\nℹ️  This is a common question that confuses people because');
-  console.log('   they don\'t understand deductibles, copays, and coverage %.\n');
+  console.log("   they don't understand deductibles, copays, and coverage %.\n");
 
   console.log('⏳ Getting answer... (this takes 10-20 seconds)\n');
 
   try {
-    const answer = await askInsuranceSimplified(question, 'llama3.2');
+    const answer = await askInsuranceSimplified(question, 'llama3.1:8b');
     console.log(answer);
 
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
@@ -80,11 +80,10 @@ Let's try a confusing question that trips up most people...
     });
 
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-
   } catch (error: any) {
     console.log(`\n❌ Error: ${error.message}`);
     console.log('\nMake sure you have a model installed:');
-    console.log('   ollama pull llama3.2');
+    console.log('   ollama pull llama3.1:8b');
   }
 }
 

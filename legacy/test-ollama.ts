@@ -27,9 +27,9 @@ async function runTest() {
   console.log('\n2️⃣  Testing simple query...');
   try {
     const response = await ollama.chat({
-      model: 'llama3.2',
+      model: 'llama3.1:8b',
       messages: [{ role: 'user', content: 'Say "Hello from Ollama!" in one sentence.' }],
-      stream: false
+      stream: false,
     });
     console.log(`✅ Response: ${response.message.content}`);
   } catch (error: any) {
@@ -43,10 +43,7 @@ async function runTest() {
   const { askInsurance } = await import('./ollama-simple.js');
 
   try {
-    const answer = await askInsurance(
-      "What is the monthly premium for Health Plan A?",
-      "llama3.2"
-    );
+    const answer = await askInsurance('What is the monthly premium for Health Plan A?', 'llama3.1:8b');
     console.log('\n✅ RAG Test Successful!\n');
     console.log('Question: What is the monthly premium for Health Plan A?');
     console.log('\nAnswer:', answer.substring(0, 200) + '...');
