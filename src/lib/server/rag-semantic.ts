@@ -168,6 +168,13 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 		} catch (error: any) {
 			lastError = error;
 
+			// If it's an authentication error, provide helpful message
+			if (error.status === 401) {
+				console.error('OpenRouter authentication failed. Please check your API key.');
+				responseText = "⚠️ OpenRouter API key is invalid or missing.\n\nPlease add a valid API key to your .env file:\nOPENROUTER_API_KEY=sk-or-v1-...\n\nGet your free API key at: https://openrouter.ai/keys";
+				break;
+			}
+
 			// If it's a rate limit error, try the next model
 			if (error.status === 429) {
 				console.log(`Model ${model} is rate-limited, trying next model...`);
@@ -179,8 +186,8 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 		}
 	}
 
-	// If all models failed
-	if (!responseText && lastError) {
+	// If all models failed due to rate limits
+	if (!responseText && lastError?.status === 429) {
 		responseText = "I'm experiencing high demand right now. Please try again in a moment.";
 	}
 
@@ -334,6 +341,20 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 
 		} catch (error: any) {
 			lastError = error;
+
+			// If it's an authentication error, provide helpful message
+			if (error.status === 401) {
+				console.error('OpenRouter authentication failed. Please check your API key.');
+				yield {
+					type: 'chunk',
+					data: "⚠️ OpenRouter API key is invalid or missing.\n\nPlease add a valid API key to your .env file:\nOPENROUTER_API_KEY=sk-or-v1-...\n\nGet your free API key at: https://openrouter.ai/keys"
+				};
+				yield {
+					type: 'done',
+					data: null
+				};
+				return;
+			}
 
 			// If it's a rate limit error, try the next model
 			if (error.status === 429) {
