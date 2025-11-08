@@ -371,7 +371,7 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 	console.error('All models failed:', lastError);
 	yield {
 		type: 'chunk',
-		data: "I'm experiencing high demand right now. Please try again in a moment, or consider adding your own API key for guaranteed access."
+		data: "I'm experiencing high demand right now. Please try again in a few moments."
 	};
 	yield {
 		type: 'done',

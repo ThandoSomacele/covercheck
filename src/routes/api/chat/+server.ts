@@ -25,7 +25,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					console.error('Streaming error:', error);
 					const errorChunk = JSON.stringify({
 						type: 'error',
-						data: 'An error occurred while processing your request'
+						data: "I'm sorry, I encountered an issue while processing your question. Please try again."
 					}) + '\n';
 					controller.enqueue(encoder.encode(errorChunk));
 				} finally {
@@ -43,6 +43,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 	} catch (error: any) {
 		console.error('Error:', error);
-		return json({ error: 'An error occurred while processing your request' }, { status: 500 });
+		return json({ error: "I'm sorry, something went wrong. Please try again." }, { status: 500 });
 	}
 };
