@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { marked } from 'marked';
+
 	interface Source {
 		title: string;
 		url: string;
@@ -16,6 +18,12 @@
 	let input = $state('');
 	let loading = $state(false);
 	let selectedProvider = $state<string>('all');
+
+	// Configure marked options
+	marked.setOptions({
+		breaks: true,
+		gfm: true
+	});
 
 	const providers = [
 		{ value: 'all', label: '🌐 All Providers' },
@@ -116,38 +124,36 @@
 	}
 
 	/**
-	 * Convert source references like "Source 1" into clickable links
+	 * Convert source references like "Source 1" into clickable link icons
+	 * Formats markdown content and replaces source references with icon-only links
 	 */
-	function linkifySourceReferences(content: string, sources: Source[]): string {
-		if (!content || !sources || sources.length === 0) return content;
+	function formatMessageContent(content: string, sources: Source[]): string {
+		if (!content) return content;
 
-		// Escape HTML to prevent XSS
-		const escaped = content
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#039;');
+		// First, parse markdown
+		let formatted = marked.parse(content) as string;
 
-		// Replace "Source X" with clickable link
-		// Matches: "Source 1", "source 1", "Source 1:", "Source 1,", etc.
-		return escaped.replace(
-			/\b(source|Source)\s+(\d+)\b/gi,
-			(match, sourceWord, num) => {
-				const sourceIndex = parseInt(num) - 1;
-				if (sourceIndex >= 0 && sourceIndex < sources.length) {
-					const source = sources[sourceIndex];
-					return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="inline-source-link" title="${source.title} (${source.provider})">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-							<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-						</svg>
-						${sourceWord} ${num}
-					</a>`;
+		// Then replace "Source X" with clickable icon-only link
+		if (sources && sources.length > 0) {
+			formatted = formatted.replace(
+				/\b(source|Source)\s+(\d+)\b/gi,
+				(match, sourceWord, num) => {
+					const sourceIndex = parseInt(num) - 1;
+					if (sourceIndex >= 0 && sourceIndex < sources.length) {
+						const source = sources[sourceIndex];
+						return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="inline-source-link" title="Source ${num}: ${source.title} (${source.provider})" aria-label="Source ${num}">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+								<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+							</svg>
+						</a>`;
+					}
+					return match;
 				}
-				return match;
-			}
-		);
+			);
+		}
+
+		return formatted;
 	}
 </script>
 
@@ -192,8 +198,8 @@
 			{#each messages as message}
 				<div class="message message-{message.role}">
 					<div class="message-content">
-						{#if message.role === 'assistant' && message.sources && message.sources.length > 0}
-							{@html linkifySourceReferences(message.content, message.sources)}
+						{#if message.role === 'assistant'}
+							{@html formatMessageContent(message.content, message.sources || [])}
 						{:else}
 							{message.content}
 						{/if}
@@ -480,35 +486,109 @@
 		color: #6b7280;
 	}
 
-	/* Inline source links within message content */
+	/* Inline source links within message content - icon only */
 	:global(.inline-source-link) {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
+		justify-content: center;
 		color: #667eea;
 		text-decoration: none;
-		font-weight: 500;
-		padding: 0.125rem 0.375rem;
+		padding: 0.25rem;
 		border-radius: 4px;
 		transition: all 0.2s;
 		background: rgba(102, 126, 234, 0.1);
-		border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+		vertical-align: middle;
+		margin: 0 0.125rem;
 	}
 
 	:global(.inline-source-link:hover) {
 		background: rgba(102, 126, 234, 0.2);
-		border-bottom-color: #667eea;
 		transform: translateY(-1px);
 	}
 
 	:global(.inline-source-link svg) {
-		width: 14px;
-		height: 14px;
-		opacity: 0.7;
+		width: 16px;
+		height: 16px;
+		opacity: 0.8;
 	}
 
 	:global(.inline-source-link:hover svg) {
 		opacity: 1;
+	}
+
+	/* Markdown formatting styles */
+	:global(.message-content p) {
+		margin: 0 0 0.5rem 0;
+	}
+
+	:global(.message-content p:last-child) {
+		margin-bottom: 0;
+	}
+
+	:global(.message-content strong) {
+		font-weight: 600;
+	}
+
+	:global(.message-content em) {
+		font-style: italic;
+	}
+
+	:global(.message-content ul),
+	:global(.message-content ol) {
+		margin: 0.25rem 0;
+		padding-left: 1.5rem;
+	}
+
+	:global(.message-content li) {
+		margin: 0.125rem 0;
+		line-height: 1.5;
+	}
+
+	:global(.message-content code) {
+		background: rgba(0, 0, 0, 0.05);
+		padding: 0.125rem 0.375rem;
+		border-radius: 3px;
+		font-family: 'Monaco', 'Courier New', monospace;
+		font-size: 0.9em;
+	}
+
+	:global(.message-content pre) {
+		background: rgba(0, 0, 0, 0.05);
+		padding: 0.75rem;
+		border-radius: 6px;
+		overflow-x: auto;
+		margin: 0.5rem 0;
+	}
+
+	:global(.message-content pre code) {
+		background: none;
+		padding: 0;
+	}
+
+	:global(.message-content blockquote) {
+		border-left: 3px solid #667eea;
+		padding-left: 1rem;
+		margin: 0.5rem 0;
+		color: #6b7280;
+	}
+
+	:global(.message-content h1),
+	:global(.message-content h2),
+	:global(.message-content h3) {
+		margin: 1rem 0 0.5rem 0;
+		font-weight: 600;
+	}
+
+	:global(.message-content h1) {
+		font-size: 1.5em;
+	}
+
+	:global(.message-content h2) {
+		font-size: 1.25em;
+	}
+
+	:global(.message-content h3) {
+		font-size: 1.1em;
 	}
 
 	.input-form {
