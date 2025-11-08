@@ -171,7 +171,7 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 			// If it's an authentication error, provide helpful message
 			if (error.status === 401) {
 				console.error('OpenRouter authentication failed. Please check your API key.');
-				responseText = "⚠️ OpenRouter API key is invalid or missing.\n\nPlease add a valid API key to your .env file:\nOPENROUTER_API_KEY=sk-or-v1-...\n\nGet your free API key at: https://openrouter.ai/keys";
+				responseText = "I'm sorry, but the service is currently experiencing configuration issues. Please try again later or contact support.";
 				break;
 			}
 
@@ -347,7 +347,7 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 				console.error('OpenRouter authentication failed. Please check your API key.');
 				yield {
 					type: 'chunk',
-					data: "⚠️ OpenRouter API key is invalid or missing.\n\nPlease add a valid API key to your .env file:\nOPENROUTER_API_KEY=sk-or-v1-...\n\nGet your free API key at: https://openrouter.ai/keys"
+					data: "I'm sorry, but the service is currently experiencing configuration issues. Please try again later or contact support."
 				};
 				yield {
 					type: 'done',
