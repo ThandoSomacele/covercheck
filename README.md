@@ -35,6 +35,8 @@ A modern AI-powered medical aid assistant that helps South Africans understand a
 
 - Node.js 18+
 - npm or yarn
+- PostgreSQL with pgvector extension (for Phase 2+)
+- Ollama (for local embeddings)
 
 ### Installation
 
@@ -45,7 +47,29 @@ cd covercheck
 
 # Install dependencies
 npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add your API keys and database connection string
 ```
+
+### Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+```env
+# Database Configuration
+DB_CONNECTION_STRING=postgresql://user:password@host:port/database
+
+# OpenRouter API Configuration
+OPENROUTER_API_KEY=sk-or-v1-your_api_key_here
+```
+
+**⚠️ SECURITY WARNING:**
+- **NEVER commit your `.env` file to git**
+- **NEVER hardcode API keys or secrets in source code**
+- The `.env` file is already in `.gitignore` for your protection
+- Use `.env.example` as a template (it contains no real secrets)
 
 ### Running the Scrapers
 
