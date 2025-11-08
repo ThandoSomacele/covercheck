@@ -33,6 +33,7 @@
 		"cheerio": "^1.1.2",
 		"dotenv": "^17.2.3",
 		"ollama": "^0.6.2",
+		"pdfjs-dist": "^4.8.69",
 		"pg": "^8.16.3",
 		"playwright": "^1.56.1"
 	}
