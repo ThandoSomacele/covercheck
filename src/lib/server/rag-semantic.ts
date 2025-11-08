@@ -178,3 +178,112 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 		sources: Array.from(sourcesMap.values()).sort((a, b) => b.relevance - a.relevance)
 	};
 }
+
+/**
+ * Query insurance with streaming response
+ * Returns an async generator that yields response chunks
+ */
+export async function* queryInsuranceStream(
+	question: string,
+	providerFilter?: string
+): AsyncGenerator<{ type: 'sources' | 'chunk' | 'done'; data: any }> {
+	// Perform semantic search
+	const relevantChunks = await semanticSearch(question, 5, providerFilter);
+
+	// Build sources array with unique documents
+	const sourcesMap = new Map<string, { title: string; url: string; provider: string; relevance: number }>();
+
+	relevantChunks.forEach((chunk) => {
+		const key = chunk.documentUrl;
+		if (!sourcesMap.has(key) || sourcesMap.get(key)!.relevance < chunk.similarity) {
+			sourcesMap.set(key, {
+				title: chunk.documentTitle,
+				url: chunk.documentUrl,
+				provider: chunk.provider,
+				relevance: chunk.similarity
+			});
+		}
+	});
+
+	const sources = Array.from(sourcesMap.values()).sort((a, b) => b.relevance - a.relevance);
+
+	// Send sources first
+	yield {
+		type: 'sources',
+		data: sources
+	};
+
+	if (relevantChunks.length === 0) {
+		yield {
+			type: 'chunk',
+			data: "I couldn't find information about that in our medical aid documents. Can you rephrase your question or ask about a specific plan?"
+		};
+		yield { type: 'done', data: null };
+		return;
+	}
+
+	// Build context from search results
+	const context = relevantChunks
+		.map(
+			(chunk, i) =>
+				`[Source ${i + 1}: ${chunk.documentTitle} - ${chunk.provider}]
+${chunk.content}`
+		)
+		.join('\n\n---\n\n');
+
+	// Get simplification prompt
+	const simplificationPrompt = getSimplificationPromptSA();
+
+	// Create prompt with citations
+	const prompt = `${simplificationPrompt}
+
+MEDICAL AID DOCUMENTS TO USE:
+${context}
+
+USER'S QUESTION: ${question}
+
+IMPORTANT: When answering, cite your sources by mentioning the source number (e.g., "According to Source 1..." or "As stated in Source 2..."). This helps users verify the information.
+
+YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
+
+	// Initialize OpenRouter client
+	const openrouter = new OpenAI({
+		baseURL: 'https://openrouter.ai/api/v1',
+		apiKey: OPENROUTER_API_KEY,
+		defaultHeaders: {
+			'HTTP-Referer': 'https://covercheck.co.za',
+			'X-Title': 'CoverCheck'
+		}
+	});
+
+	// Stream the response
+	const stream = await openrouter.chat.completions.create({
+		model: 'meta-llama/llama-3.2-3b-instruct:free',
+		messages: [
+			{
+				role: 'user',
+				content: prompt
+			}
+		],
+		temperature: 0.7,
+		max_tokens: 1000,
+		stream: true
+	});
+
+	// Yield each chunk as it arrives
+	for await (const chunk of stream) {
+		const content = chunk.choices[0]?.delta?.content;
+		if (content) {
+			yield {
+				type: 'chunk',
+				data: content
+			};
+		}
+	}
+
+	// Signal completion
+	yield {
+		type: 'done',
+		data: null
+	};
+}

@@ -34,6 +34,10 @@
 		messages = [...messages, { role: 'user', content: userMessage }];
 		loading = true;
 
+		// Add empty assistant message that will be filled with streaming content
+		const assistantMessageIndex = messages.length;
+		messages = [...messages, { role: 'assistant', content: '', sources: [] }];
+
 		try {
 			const response = await fetch('/api/chat', {
 				method: 'POST',
@@ -46,28 +50,53 @@
 				})
 			});
 
-			const data = await response.json();
+			if (!response.ok || !response.body) {
+				throw new Error('Failed to get response');
+			}
 
-			if (data.error) {
-				messages = [
-					...messages,
-					{ role: 'assistant', content: `Error: ${data.error}` }
-				];
-			} else {
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						content: data.response,
-						sources: data.sources
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = '';
+
+			while (true) {
+				const { done, value } = await reader.read();
+
+				if (done) break;
+
+				// Decode the chunk and add to buffer
+				buffer += decoder.decode(value, { stream: true });
+
+				// Process complete lines (separated by \n)
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+
+					try {
+						const chunk = JSON.parse(line);
+
+						if (chunk.type === 'sources') {
+							// Update sources
+							messages[assistantMessageIndex].sources = chunk.data;
+							messages = [...messages]; // Trigger reactivity
+						} else if (chunk.type === 'chunk') {
+							// Append content chunk
+							messages[assistantMessageIndex].content += chunk.data;
+							messages = [...messages]; // Trigger reactivity
+						} else if (chunk.type === 'error') {
+							messages[assistantMessageIndex].content = `Error: ${chunk.data}`;
+							messages = [...messages];
+						}
+					} catch (e) {
+						console.error('Failed to parse chunk:', line, e);
 					}
-				];
+				}
 			}
 		} catch (error) {
-			messages = [
-				...messages,
-				{ role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }
-			];
+			console.error('Streaming error:', error);
+			messages[assistantMessageIndex].content = 'Sorry, something went wrong. Please try again.';
+			messages = [...messages];
 		} finally {
 			loading = false;
 		}
@@ -146,13 +175,11 @@
 				</div>
 			{/each}
 
-			{#if loading}
-				<div class="message message-assistant">
-					<div class="message-content loading">
-						<span class="dot"></span>
-						<span class="dot"></span>
-						<span class="dot"></span>
-					</div>
+			{#if loading && messages[messages.length - 1]?.content === ''}
+				<div class="streaming-indicator">
+					<span class="dot"></span>
+					<span class="dot"></span>
+					<span class="dot"></span>
 				</div>
 			{/if}
 		{/if}
@@ -326,10 +353,12 @@
 		color: #1f2937;
 	}
 
-	.loading {
+	.streaming-indicator {
 		display: flex;
 		gap: 0.5rem;
-		padding: 1.5rem 2rem;
+		padding: 1rem 1.25rem;
+		align-self: flex-start;
+		max-width: 85%;
 	}
 
 	.dot {

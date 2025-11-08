@@ -74,13 +74,32 @@ async function semanticSearch(query, limit = 5, providerFilter) {
     await db.end();
   }
 }
-async function queryInsurance(question, providerFilter) {
+async function* queryInsuranceStream(question, providerFilter) {
   const relevantChunks = await semanticSearch(question, 5, providerFilter);
+  const sourcesMap = /* @__PURE__ */ new Map();
+  relevantChunks.forEach((chunk) => {
+    const key = chunk.documentUrl;
+    if (!sourcesMap.has(key) || sourcesMap.get(key).relevance < chunk.similarity) {
+      sourcesMap.set(key, {
+        title: chunk.documentTitle,
+        url: chunk.documentUrl,
+        provider: chunk.provider,
+        relevance: chunk.similarity
+      });
+    }
+  });
+  const sources = Array.from(sourcesMap.values()).sort((a, b) => b.relevance - a.relevance);
+  yield {
+    type: "sources",
+    data: sources
+  };
   if (relevantChunks.length === 0) {
-    return {
-      response: "I couldn't find information about that in our medical aid documents. Can you rephrase your question or ask about a specific plan?",
-      sources: []
+    yield {
+      type: "chunk",
+      data: "I couldn't find information about that in our medical aid documents. Can you rephrase your question or ask about a specific plan?"
     };
+    yield { type: "done", data: null };
+    return;
   }
   const context = relevantChunks.map(
     (chunk, i) => `[Source ${i + 1}: ${chunk.documentTitle} - ${chunk.provider}]
@@ -102,14 +121,11 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
     apiKey: OPENROUTER_API_KEY,
     defaultHeaders: {
       "HTTP-Referer": "https://covercheck.co.za",
-      // Optional: your site URL
       "X-Title": "CoverCheck"
-      // Optional: site title
     }
   });
-  const completion = await openrouter.chat.completions.create({
+  const stream = await openrouter.chat.completions.create({
     model: "meta-llama/llama-3.2-3b-instruct:free",
-    // Free tier model
     messages: [
       {
         role: "user",
@@ -117,24 +133,21 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
       }
     ],
     temperature: 0.7,
-    max_tokens: 1e3
+    max_tokens: 1e3,
+    stream: true
   });
-  const responseText = completion.choices[0]?.message?.content || "No response generated.";
-  const sourcesMap = /* @__PURE__ */ new Map();
-  relevantChunks.forEach((chunk) => {
-    const key = chunk.documentUrl;
-    if (!sourcesMap.has(key) || sourcesMap.get(key).relevance < chunk.similarity) {
-      sourcesMap.set(key, {
-        title: chunk.documentTitle,
-        url: chunk.documentUrl,
-        provider: chunk.provider,
-        relevance: chunk.similarity
-      });
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      yield {
+        type: "chunk",
+        data: content
+      };
     }
-  });
-  return {
-    response: responseText,
-    sources: Array.from(sourcesMap.values()).sort((a, b) => b.relevance - a.relevance)
+  }
+  yield {
+    type: "done",
+    data: null
   };
 }
 const POST = async ({ request }) => {
@@ -143,8 +156,33 @@ const POST = async ({ request }) => {
     if (!message) {
       return json({ error: "Message is required" }, { status: 400 });
     }
-    const result = await queryInsurance(message, provider);
-    return json(result);
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          for await (const chunk of queryInsuranceStream(message, provider)) {
+            const data = JSON.stringify(chunk) + "\n";
+            controller.enqueue(encoder.encode(data));
+          }
+        } catch (error) {
+          console.error("Streaming error:", error);
+          const errorChunk = JSON.stringify({
+            type: "error",
+            data: "An error occurred while processing your request"
+          }) + "\n";
+          controller.enqueue(encoder.encode(errorChunk));
+        } finally {
+          controller.close();
+        }
+      }
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      }
+    });
   } catch (error) {
     console.error("Error:", error);
     return json({ error: "An error occurred while processing your request" }, { status: 500 });
