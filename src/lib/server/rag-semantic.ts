@@ -234,29 +234,6 @@ export async function* queryInsuranceStream(
 	// Perform semantic search
 	const relevantChunks = await semanticSearch(question, 5, providerFilter);
 
-	// Build sources array with unique documents
-	const sourcesMap = new Map<string, { title: string; url: string; provider: string; relevance: number }>();
-
-	relevantChunks.forEach((chunk) => {
-		const key = chunk.documentUrl;
-		if (!sourcesMap.has(key) || sourcesMap.get(key)!.relevance < chunk.similarity) {
-			sourcesMap.set(key, {
-				title: chunk.documentTitle,
-				url: chunk.documentUrl,
-				provider: chunk.provider,
-				relevance: chunk.similarity
-			});
-		}
-	});
-
-	const sources = Array.from(sourcesMap.values()).sort((a, b) => b.relevance - a.relevance);
-
-	// Send sources first
-	yield {
-		type: 'sources',
-		data: sources
-	};
-
 	if (relevantChunks.length === 0) {
 		yield {
 			type: 'chunk',
@@ -266,12 +243,48 @@ export async function* queryInsuranceStream(
 		return;
 	}
 
-	// Build context from search results
+	// Build sources array with unique documents, maintaining order for citation mapping
+	const sourcesMap = new Map<string, { title: string; url: string; provider: string; relevance: number; firstIndex: number }>();
+
+	relevantChunks.forEach((chunk, index) => {
+		const key = chunk.documentUrl;
+		if (!sourcesMap.has(key)) {
+			sourcesMap.set(key, {
+				title: chunk.documentTitle,
+				url: chunk.documentUrl,
+				provider: chunk.provider,
+				relevance: chunk.similarity,
+				firstIndex: index
+			});
+		}
+	});
+
+	// Sort by first appearance to maintain logical citation order
+	const sources = Array.from(sourcesMap.values())
+		.sort((a, b) => a.firstIndex - b.firstIndex)
+		.map(({ firstIndex, ...source }) => source);
+
+	// Create a mapping from chunk index to source index for the AI context
+	const chunkToSourceMap = new Map<number, number>();
+	relevantChunks.forEach((chunk, chunkIndex) => {
+		const sourceIndex = sources.findIndex(s => s.url === chunk.documentUrl);
+		chunkToSourceMap.set(chunkIndex, sourceIndex);
+	});
+
+	// Send sources first
+	yield {
+		type: 'sources',
+		data: sources
+	};
+
+	// Build context from search results with correct source numbering
 	const context = relevantChunks
 		.map(
-			(chunk, i) =>
-				`[Source ${i + 1}: ${chunk.documentTitle} - ${chunk.provider}]
-${chunk.content}`
+			(chunk, i) => {
+				const sourceNum = chunkToSourceMap.get(i)! + 1;
+				return `[Source ${sourceNum}: ${chunk.documentTitle} - ${chunk.provider}]
+${chunk.content}`;
+			}
 		)
 		.join('\n\n---\n\n');
 
