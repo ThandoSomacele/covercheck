@@ -143,20 +143,46 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 		}
 	});
 
-	// Query OpenRouter with a cost-effective model
-	const completion = await openrouter.chat.completions.create({
-		model: 'meta-llama/llama-3.2-3b-instruct:free', // Free tier model
-		messages: [
-			{
-				role: 'user',
-				content: prompt
-			}
-		],
-		temperature: 0.7,
-		max_tokens: 1000
-	});
+	// Try each model until one works (fallback strategy for rate limits)
+	let responseText = '';
+	let lastError: any = null;
 
-	const responseText = completion.choices[0]?.message?.content || 'No response generated.';
+	for (const model of FREE_MODELS) {
+		try {
+			// Query OpenRouter with current model
+			const completion = await openrouter.chat.completions.create({
+				model,
+				messages: [
+					{
+						role: 'user',
+						content: prompt
+					}
+				],
+				temperature: 0.7,
+				max_tokens: 1000
+			});
+
+			responseText = completion.choices[0]?.message?.content || 'No response generated.';
+			break; // Success! Exit the loop
+
+		} catch (error: any) {
+			lastError = error;
+
+			// If it's a rate limit error, try the next model
+			if (error.status === 429) {
+				console.log(`Model ${model} is rate-limited, trying next model...`);
+				continue;
+			}
+
+			// For other errors, throw immediately
+			throw error;
+		}
+	}
+
+	// If all models failed
+	if (!responseText && lastError) {
+		responseText = "I'm experiencing high demand right now. Please try again in a moment.";
+	}
 
 	// Build sources array with unique documents
 	const sourcesMap = new Map<string, { title: string; url: string; provider: string; relevance: number }>();
@@ -178,6 +204,17 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 		sources: Array.from(sourcesMap.values()).sort((a, b) => b.relevance - a.relevance)
 	};
 }
+
+/**
+ * Available free models in priority order
+ * Try each one until we find one that's not rate-limited
+ */
+const FREE_MODELS = [
+	'google/gemini-2.0-flash-exp:free',
+	'meta-llama/llama-3.2-3b-instruct:free',
+	'mistralai/mistral-7b-instruct:free',
+	'google/gemini-flash-1.5:free'
+];
 
 /**
  * Query insurance with streaming response
@@ -256,32 +293,65 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
 		}
 	});
 
-	// Stream the response
-	const stream = await openrouter.chat.completions.create({
-		model: 'meta-llama/llama-3.2-3b-instruct:free',
-		messages: [
-			{
-				role: 'user',
-				content: prompt
-			}
-		],
-		temperature: 0.7,
-		max_tokens: 1000,
-		stream: true
-	});
+	// Try each model until one works (fallback strategy for rate limits)
+	let lastError: any = null;
 
-	// Yield each chunk as it arrives
-	for await (const chunk of stream) {
-		const content = chunk.choices[0]?.delta?.content;
-		if (content) {
+	for (const model of FREE_MODELS) {
+		try {
+			// Stream the response
+			const stream = await openrouter.chat.completions.create({
+				model,
+				messages: [
+					{
+						role: 'user',
+						content: prompt
+					}
+				],
+				temperature: 0.7,
+				max_tokens: 1000,
+				stream: true
+			});
+
+			// Yield each chunk as it arrives
+			for await (const chunk of stream) {
+				const content = chunk.choices[0]?.delta?.content;
+				if (content) {
+					yield {
+						type: 'chunk',
+						data: content
+					};
+				}
+			}
+
+			// Signal completion
 			yield {
-				type: 'chunk',
-				data: content
+				type: 'done',
+				data: null
 			};
+
+			// Success! Exit the loop
+			return;
+
+		} catch (error: any) {
+			lastError = error;
+
+			// If it's a rate limit error, try the next model
+			if (error.status === 429) {
+				console.log(`Model ${model} is rate-limited, trying next model...`);
+				continue;
+			}
+
+			// For other errors, throw immediately
+			throw error;
 		}
 	}
 
-	// Signal completion
+	// If we get here, all models failed
+	console.error('All models failed:', lastError);
+	yield {
+		type: 'chunk',
+		data: "I'm experiencing high demand right now. Please try again in a moment, or consider adding your own API key for guaranteed access."
+	};
 	yield {
 		type: 'done',
 		data: null

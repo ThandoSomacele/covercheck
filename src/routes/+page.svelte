@@ -38,6 +38,9 @@
 		const assistantMessageIndex = messages.length;
 		messages = [...messages, { role: 'assistant', content: '', sources: [] }];
 
+		// Store sources temporarily until streaming is complete
+		let tempSources: Source[] = [];
+
 		try {
 			const response = await fetch('/api/chat', {
 				method: 'POST',
@@ -77,13 +80,16 @@
 						const chunk = JSON.parse(line);
 
 						if (chunk.type === 'sources') {
-							// Update sources
-							messages[assistantMessageIndex].sources = chunk.data;
-							messages = [...messages]; // Trigger reactivity
+							// Store sources but don't display yet
+							tempSources = chunk.data;
 						} else if (chunk.type === 'chunk') {
 							// Append content chunk
 							messages[assistantMessageIndex].content += chunk.data;
 							messages = [...messages]; // Trigger reactivity
+						} else if (chunk.type === 'done') {
+							// Now show sources when streaming is complete
+							messages[assistantMessageIndex].sources = tempSources;
+							messages = [...messages];
 						} else if (chunk.type === 'error') {
 							messages[assistantMessageIndex].content = `Error: ${chunk.data}`;
 							messages = [...messages];
