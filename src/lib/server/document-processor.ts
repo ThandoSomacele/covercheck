@@ -1,5 +1,10 @@
 import { Ollama } from 'ollama';
 import pg from 'pg';
+import { readFileSync } from 'fs';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { PdfReader } = require('pdfreader');
 
 const { Client } = pg;
 
@@ -7,14 +12,14 @@ const { Client } = pg;
  * Document from scraped data
  */
 export interface ScrapedDocument {
-  id: string;
+  id?: string;
   title: string;
   content: string;
   url: string;
-  contentType: string;
+  contentType?: string;
   provider: string;
-  scrapedAt: string;
-  metadata: Record<string, unknown>;
+  scrapedAt?: string;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -269,17 +274,87 @@ export class DocumentProcessor {
   }
 
   /**
-   * Process a single document: chunk, embed, and store
+   * Extract text from PDF file using pdfreader
+   */
+  async extractPdfText(filepath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const textByPage: { [key: number]: string } = {};
+      let currentPage = 0;
+
+      new PdfReader().parseFileItems(filepath, (err: any, item: any) => {
+        if (err) {
+          console.error(`      ❌ Error extracting PDF text: ${err}`);
+          reject(err);
+        } else if (!item) {
+          // End of file - combine all pages
+          const fullText = Object.keys(textByPage)
+            .sort((a, b) => parseInt(a) - parseInt(b))
+            .map(page => textByPage[parseInt(page)])
+            .join('\n\n');
+          resolve(fullText.trim());
+        } else if (item.page) {
+          // New page
+          currentPage = item.page;
+          if (!textByPage[currentPage]) {
+            textByPage[currentPage] = '';
+          }
+        } else if (item.text) {
+          // Text content
+          if (!textByPage[currentPage]) {
+            textByPage[currentPage] = '';
+          }
+          textByPage[currentPage] += item.text + ' ';
+        }
+      });
+    });
+  }
+
+  /**
+   * Process a single document: extract content if needed, chunk, embed, and store
    */
   async processDocument(doc: ScrapedDocument): Promise<void> {
     console.log(`📄 Processing: ${doc.title} (${doc.provider})`);
 
+    // Generate ID if not provided (use URL hash or title-based ID)
+    if (!doc.id) {
+      doc.id = this.generateDocumentId(doc.url, doc.title);
+    }
+
+    // Set defaults for optional fields
+    if (!doc.contentType) {
+      doc.contentType = doc.metadata?.filepath ? 'application/pdf' : 'text/html';
+    }
+    if (!doc.scrapedAt) {
+      doc.scrapedAt = new Date().toISOString();
+    }
+    if (!doc.metadata) {
+      doc.metadata = {};
+    }
+
+    // If content is empty and metadata has filepath, extract from PDF
+    if (!doc.content && doc.metadata?.filepath) {
+      console.log(`   📖 Extracting text from PDF...`);
+      try {
+        doc.content = await this.extractPdfText(doc.metadata.filepath as string);
+        console.log(`   ✅ Extracted ${doc.content.length} characters from PDF`);
+      } catch (error) {
+        console.error(`   ❌ Failed to extract PDF text:`, error);
+        throw error;
+      }
+    }
+
+    // Skip if still no content
+    if (!doc.content || doc.content.trim().length === 0) {
+      console.log(`   ⚠️  Skipping: No content available\n`);
+      return;
+    }
+
     // Store original document
-    await this.storeDocument(doc);
+    await this.storeDocument(doc as Required<ScrapedDocument>);
     console.log(`   ✅ Stored document`);
 
     // Chunk the document
-    const chunks = this.chunkDocument(doc);
+    const chunks = this.chunkDocument(doc as Required<ScrapedDocument>);
     console.log(`   📊 Created ${chunks.length} chunks`);
 
     // Generate embeddings and store chunks
@@ -292,6 +367,22 @@ export class DocumentProcessor {
     }
 
     console.log(`   ✅ Completed ${doc.id}\n`);
+  }
+
+  /**
+   * Generate a unique document ID from URL or title
+   */
+  private generateDocumentId(url: string, title: string): string {
+    // Use URL as base for ID, or fall back to title
+    const base = url || title;
+    // Simple hash function
+    let hash = 0;
+    for (let i = 0; i < base.length; i++) {
+      const char = base.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return `doc_${Math.abs(hash).toString(36)}`;
   }
 
   /**
