@@ -1,6 +1,9 @@
+import { config } from 'dotenv';
 import { Ollama } from 'ollama';
 import pg from 'pg';
 const { Client } = pg;
+
+config();
 
 const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING || '';
 
