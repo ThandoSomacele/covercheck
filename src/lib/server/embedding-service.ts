@@ -59,33 +59,60 @@ class HuggingFaceProvider implements EmbeddingProvider {
     // Use the new router endpoint (2025) with feature extraction task
     const apiUrl = `https://router.huggingface.co/hf-inference/models/${this.model}`;
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: [text],  // Send as array for sentence similarity models
-        options: { wait_for_model: true }
-      }),
-    });
+    // Retry logic for handling temporary API failures
+    const maxRetries = 3;
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Hugging Face API error: ${response.status} - ${error}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            inputs: [text],
+            options: { wait_for_model: true }
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+
+          // Retry on 502 (Bad Gateway), 503 (Service Unavailable), or 429 (Rate Limit)
+          if ([502, 503, 429].includes(response.status) && attempt < maxRetries) {
+            const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+            console.log(`⚠️  HF API ${response.status}, retrying in ${waitTime/1000}s (attempt ${attempt}/${maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+
+          throw new Error(`Hugging Face API error: ${response.status} - ${error.substring(0, 200)}`);
+        }
+
+        const result = await response.json();
+
+        // Handle different response formats
+        if (Array.isArray(result)) {
+          return Array.isArray(result[0]) ? result[0] : result;
+        }
+
+        throw new Error('Unexpected response format from Hugging Face API');
+
+      } catch (error) {
+        // Don't retry on non-retryable errors
+        const errorMsg = (error as Error).message;
+        if (!errorMsg.includes('502') && !errorMsg.includes('503') && !errorMsg.includes('429')) {
+          throw error;
+        }
+
+        if (attempt === maxRetries) {
+          throw error;
+        }
+      }
     }
 
-    const result = await response.json();
-
-    // Handle different response formats
-    // Feature extraction returns embeddings directly
-    if (Array.isArray(result)) {
-      // If it's an array of arrays, take the first one
-      return Array.isArray(result[0]) ? result[0] : result;
-    }
-
-    throw new Error('Unexpected response format from Hugging Face API');
+    throw new Error('Failed to generate embedding after retries');
   }
   
   getDimensions(): number {
