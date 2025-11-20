@@ -1,5 +1,6 @@
 <script lang="ts">
   import { marked } from 'marked';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
   interface Source {
     title: string;
@@ -26,10 +27,10 @@
   });
 
   const providers = [
-    { value: 'all', label: '🌐 All Providers' },
-    { value: 'Discovery Health', label: '💎 Discovery Health' },
-    { value: 'Bonitas Medical Fund', label: '🏥 Bonitas Medical Fund' },
-    { value: 'Momentum Health', label: '⚡ Momentum Health' },
+    { value: 'all', label: 'All Providers' },
+    { value: 'Discovery Health', label: 'Discovery Health' },
+    { value: 'Bonitas Medical Fund', label: 'Bonitas Medical Fund' },
+    { value: 'Momentum Health', label: 'Momentum Health' },
   ];
 
   async function sendMessage() {
@@ -140,7 +141,7 @@
         if (sourceIndex >= 0 && sourceIndex < sources.length) {
           const source = sources[sourceIndex];
           return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="inline-source-link" title="Source ${num}: ${source.title} (${source.provider})" aria-label="Source ${num}">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
 								<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
 							</svg>
@@ -154,405 +155,587 @@
   }
 </script>
 
-<div class="chat-container">
-  <header>
-    <h1>🏥 CoverCheck</h1>
-    <p>Find answers about South African medical aid plans with official sources</p>
+<div class="app">
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+        </svg>
+        <span class="logo-text">CoverCheck</span>
+      </div>
 
-    <div class="provider-selector">
-      <label for="provider">Search in:</label>
-      <select id="provider" bind:value={selectedProvider}>
-        {#each providers as provider}
-          <option value={provider.value}>{provider.label}</option>
-        {/each}
-      </select>
+      <div class="header-actions">
+        <div class="provider-selector">
+          <select bind:value={selectedProvider} aria-label="Select provider">
+            {#each providers as provider}
+              <option value={provider.value}>{provider.label}</option>
+            {/each}
+          </select>
+          <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </div>
+        <ThemeToggle />
+      </div>
     </div>
   </header>
 
-  <div class="messages">
-    {#if messages.length === 0}
-      <div class="welcome">
-        <h2>👋 Welcome to CoverCheck!</h2>
-        <p class="welcome-subtitle">
-          Ask me anything about South African medical aid plans. I'll provide answers with official sources.
-        </p>
-        <div class="suggestions">
-          <button
-            onclick={() => {
-              input = 'What chronic conditions are covered by Discovery Health?';
-              sendMessage();
-            }}
-          >
-            💊 Chronic condition coverage
-          </button>
-          <button
-            onclick={() => {
-              input = 'What are the hospital benefits for KeyCare plans?';
-              sendMessage();
-            }}
-          >
-            🏥 Hospital benefits
-          </button>
-          <button
-            onclick={() => {
-              input = 'How much does maternity cover cost on Bonitas?';
-              sendMessage();
-            }}
-          >
-            👶 Maternity coverage
-          </button>
-          <button
-            onclick={() => {
-              input = 'Compare day-to-day benefits across different plans';
-              sendMessage();
-            }}
-          >
-            📊 Compare benefits
+  {#if messages.length === 0}
+  <!-- Welcome/Empty state with centered input like ChatGPT -->
+  <div class="welcome-container">
+    <div class="welcome">
+      <div class="welcome-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+        </svg>
+      </div>
+      <h1 class="welcome-title">How can I help you today?</h1>
+      <p class="welcome-subtitle">
+        Ask questions about South African medical aid plans
+      </p>
+    </div>
+
+    <div class="centered-input-wrapper">
+      <form
+        class="input-form centered"
+        onsubmit={e => {
+          e.preventDefault();
+          sendMessage();
+        }}
+      >
+        <div class="input-wrapper">
+          <textarea
+            bind:value={input}
+            onkeydown={handleKeydown}
+            placeholder="Ask about medical aid coverage, benefits, costs..."
+            rows="1"
+            disabled={loading}
+          ></textarea>
+          <button type="submit" class="send-btn" disabled={!input.trim() || loading} aria-label="Send message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m22 2-7 20-4-9-9-4Z"></path>
+              <path d="M22 2 11 13"></path>
+            </svg>
           </button>
         </div>
+      </form>
+
+      <div class="suggestions">
+        <button
+          class="suggestion-chip"
+          onclick={() => {
+            input = 'What chronic conditions are covered by Discovery Health?';
+            sendMessage();
+          }}
+        >
+          <span>Chronic condition coverage</span>
+        </button>
+        <button
+          class="suggestion-chip"
+          onclick={() => {
+            input = 'What are the hospital benefits for KeyCare plans?';
+            sendMessage();
+          }}
+        >
+          <span>Hospital benefits</span>
+        </button>
+        <button
+          class="suggestion-chip"
+          onclick={() => {
+            input = 'How much does maternity cover cost on Bonitas?';
+            sendMessage();
+          }}
+        >
+          <span>Maternity coverage</span>
+        </button>
+        <button
+          class="suggestion-chip"
+          onclick={() => {
+            input = 'Compare day-to-day benefits across different plans';
+            sendMessage();
+          }}
+        >
+          <span>Compare benefits</span>
+        </button>
       </div>
-    {:else}
-      {#each messages as message}
-        <div class="message message-{message.role}">
-          <div class="message-content">
-            {#if message.role === 'assistant'}
-              {@html formatMessageContent(message.content, message.sources || [])}
-            {:else}
-              {message.content}
-            {/if}
-          </div>
-          {#if message.sources && message.sources.length > 0}
-            <div class="sources">
-              <strong>📚 Sources:</strong>
-              <div class="source-links">
-                {#each message.sources as source, i}
-                  <a
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="source-link"
-                    id="source-{i + 1}"
-                    title="{source.provider} - {Math.round(source.relevance * 100)}% relevant"
-                  >
-                    {i + 1}. {source.title}
-                    <span class="provider-badge">{source.provider}</span>
-                  </a>
-                {/each}
+    </div>
+  </div>
+  {:else}
+
+  <main class="main">
+    <div class="chat-container">
+        <div class="messages">
+          {#each messages as message}
+            <div class="message message-{message.role}">
+              <div class="message-content">
+                {#if message.role === 'assistant'}
+                  {@html formatMessageContent(message.content, message.sources || [])}
+                {:else}
+                  {message.content}
+                {/if}
+              </div>
+              {#if message.sources && message.sources.length > 0}
+                <div class="sources">
+                  <div class="sources-header">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span>Sources</span>
+                  </div>
+                  <div class="source-links">
+                    {#each message.sources as source, i}
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="source-link"
+                        title="{source.provider} - {Math.round(source.relevance * 100)}% relevant"
+                      >
+                        <span class="source-number">{i + 1}</span>
+                        <span class="source-title">{source.title}</span>
+                        <span class="source-provider">{source.provider}</span>
+                        <svg class="source-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M7 17L17 7"></path>
+                          <path d="M7 7h10v10"></path>
+                        </svg>
+                      </a>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {/each}
+
+          {#if loading && messages[messages.length - 1]?.content === ''}
+            <div class="loading-indicator">
+              <div class="loading-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
               </div>
             </div>
           {/if}
         </div>
-      {/each}
+    </div>
+  </main>
 
-      {#if loading && messages[messages.length - 1]?.content === ''}
-        <div class="streaming-indicator">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      {/if}
-    {/if}
-  </div>
-
-  <form
-    class="input-form"
-    onsubmit={e => {
-      e.preventDefault();
-      sendMessage();
-    }}
-  >
-    <textarea
-      bind:value={input}
-      onkeydown={handleKeydown}
-      placeholder="Ask me anything about your medical aid or insurance..."
-      rows="1"
-      disabled={loading}
-    ></textarea>
-    <button type="submit" disabled={!input.trim() || loading}>
-      {loading ? '...' : '→'}
-    </button>
-  </form>
+  <footer class="footer">
+    <form
+      class="input-form"
+      onsubmit={e => {
+        e.preventDefault();
+        sendMessage();
+      }}
+    >
+      <div class="input-wrapper">
+        <textarea
+          bind:value={input}
+          onkeydown={handleKeydown}
+          placeholder="Message CoverCheck..."
+          rows="1"
+          disabled={loading}
+        ></textarea>
+        <button type="submit" class="send-btn" disabled={!input.trim() || loading} aria-label="Send message">
+          {#if loading}
+            <div class="btn-loading">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          {:else}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m22 2-7 20-4-9-9-4Z"></path>
+              <path d="M22 2 11 13"></path>
+            </svg>
+          {/if}
+        </button>
+      </div>
+    </form>
+  </footer>
+  {/if}
 </div>
 
 <style>
-  :global(body) {
-    margin: 0;
-    font-family:
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      'Segoe UI',
-      Roboto,
-      Oxygen,
-      Ubuntu,
-      Cantarell,
-      sans-serif;
-    background: #f7f7f8;
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--background);
+  }
+
+  /* Header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--background);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Welcome container - ChatGPT/Gemini style centered layout */
+  .welcome-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6);
+    gap: var(--space-8);
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-6);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--foreground);
+  }
+
+  .logo svg {
+    color: var(--accent);
+  }
+
+  .logo-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .provider-selector {
+    position: relative;
+  }
+
+  .provider-selector select {
+    appearance: none;
+    padding: var(--space-2) var(--space-8) var(--space-2) var(--space-3);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .provider-selector select:hover {
+    border-color: var(--border-hover);
+  }
+
+  .provider-selector select:focus {
+    outline: none;
+    border-color: var(--foreground);
+  }
+
+  .select-icon {
+    position: absolute;
+    right: var(--space-3);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--foreground-tertiary);
+    pointer-events: none;
+  }
+
+  /* Main content */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-6);
   }
 
   .chat-container {
     max-width: 800px;
     margin: 0 auto;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: white;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding-bottom: var(--space-8);
   }
 
-  header {
-    padding: 1.5rem 2rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+  /* Welcome state - Modern AI style */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
   }
 
-  header h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.75rem;
-    font-weight: 600;
-  }
-
-  header p {
-    margin: 0 0 1rem 0;
-    opacity: 0.9;
-    font-size: 0.95rem;
-  }
-
-  .provider-selector {
+  .welcome-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
-    margin-top: 1rem;
+    width: 64px;
+    height: 64px;
+    background: var(--accent-light);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+    color: var(--accent);
   }
 
-  .provider-selector label {
-    font-size: 0.9rem;
-    opacity: 0.9;
-  }
-
-  .provider-selector select {
-    padding: 0.5rem 1rem;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    outline: none;
-    transition: all 0.2s;
-  }
-
-  .provider-selector select:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .provider-selector select option {
-    background: #667eea;
-    color: white;
-  }
-
-  .messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .welcome {
-    text-align: center;
-    margin-top: 4rem;
-  }
-
-  .welcome h2 {
-    color: #333;
-    margin-bottom: 0.75rem;
-    font-weight: 500;
+  .welcome-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0 0 var(--space-2) 0;
+    letter-spacing: -0.03em;
   }
 
   .welcome-subtitle {
-    color: #6b7280;
-    font-size: 0.95rem;
-    margin-bottom: 2rem;
+    font-size: 1rem;
+    color: var(--foreground-secondary);
+    margin: 0;
     line-height: 1.5;
   }
 
-  .suggestions {
+  .centered-input-wrapper {
+    width: 100%;
+    max-width: 680px;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    max-width: 400px;
-    margin: 0 auto;
+    gap: var(--space-4);
   }
 
-  .suggestions button {
-    padding: 1rem;
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
+  .input-form.centered {
+    margin: 0;
+  }
+
+  .input-form.centered .input-wrapper {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Suggestion chips - Gemini/ChatGPT style */
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+  }
+
+  .suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    color: var(--foreground-secondary);
+    font-size: 0.8125rem;
     cursor: pointer;
-    font-size: 0.95rem;
-    transition: all 0.2s;
-    text-align: left;
+    transition: all var(--transition-fast);
   }
 
-  .suggestions button:hover {
-    border-color: #667eea;
-    background: #f9fafb;
-    transform: translateY(-2px);
+  .suggestion-chip:hover {
+    border-color: var(--border-hover);
+    background: var(--background-secondary);
+    color: var(--foreground);
+  }
+
+  /* Messages */
+  .messages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
   }
 
   .message {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    max-width: 85%;
+    gap: var(--space-3);
   }
 
   .message-user {
-    align-self: flex-end;
+    align-items: flex-end;
   }
 
   .message-assistant {
-    align-self: flex-start;
+    align-items: flex-start;
   }
 
   .message-content {
-    padding: 1rem 1.25rem;
-    border-radius: 12px;
-    line-height: 1.5;
-    white-space: pre-wrap;
+    max-width: 85%;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    line-height: 1.6;
+    font-size: 0.9375rem;
   }
 
   .message-user .message-content {
-    background: #667eea;
-    color: white;
+    background: var(--message-user-bg);
+    color: var(--message-user-fg);
+    border-bottom-right-radius: var(--radius-sm);
   }
 
   .message-assistant .message-content {
-    background: #f3f4f6;
-    color: #1f2937;
+    background: var(--message-assistant-bg);
+    color: var(--message-assistant-fg);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: var(--radius-sm);
   }
 
-  .streaming-indicator {
-    display: flex;
-    gap: 0.5rem;
-    padding: 1rem 1.25rem;
+  /* Loading indicator */
+  .loading-indicator {
     align-self: flex-start;
-    max-width: 85%;
+    padding: var(--space-4) var(--space-5);
   }
 
-  .dot {
-    width: 8px;
-    height: 8px;
-    background: #9ca3af;
+  .loading-dots {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .loading-dots .dot,
+  .btn-loading .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--foreground-muted);
     border-radius: 50%;
-    animation: bounce 1.4s infinite ease-in-out both;
+    animation: pulse 1.4s ease-in-out infinite;
   }
 
-  .dot:nth-child(1) {
-    animation-delay: -0.32s;
+  .loading-dots .dot:nth-child(1) { animation-delay: 0s; }
+  .loading-dots .dot:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  .btn-loading {
+    display: flex;
+    gap: 3px;
   }
 
-  .dot:nth-child(2) {
-    animation-delay: -0.16s;
+  .btn-loading .dot {
+    width: 4px;
+    height: 4px;
+    background: var(--accent-foreground);
   }
 
-  @keyframes bounce {
-    0%,
-    80%,
-    100% {
-      transform: scale(0);
+  @keyframes pulse {
+    0%, 80%, 100% {
+      opacity: 0.3;
+      transform: scale(0.8);
     }
     40% {
+      opacity: 1;
       transform: scale(1);
     }
   }
 
+  /* Sources */
   .sources {
-    font-size: 0.85rem;
-    color: #6b7280;
-    padding-left: 1.25rem;
-    margin-top: 0.75rem;
+    max-width: 85%;
+    font-size: 0.8125rem;
   }
 
-  .sources strong {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #374151;
+  .sources-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--foreground-secondary);
+    margin-bottom: var(--space-3);
+    font-weight: 500;
   }
 
   .source-links {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   .source-link {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
     text-decoration: none;
-    color: #667eea;
-    transition: all 0.2s;
-    font-size: 0.9rem;
+    transition: all var(--transition-fast);
   }
 
   .source-link:hover {
-    background: #f9fafb;
-    border-color: #667eea;
-    transform: translateX(4px);
+    border-color: var(--border-hover);
+    background: var(--background-secondary);
   }
 
-  .provider-badge {
-    margin-left: auto;
-    padding: 0.25rem 0.5rem;
-    background: #f3f4f6;
-    border-radius: 4px;
+  .source-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
-    color: #6b7280;
+    font-weight: 600;
+    flex-shrink: 0;
   }
 
-  /* Inline source links within message content - icon only */
+  .source-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .source-provider {
+    color: var(--foreground-tertiary);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .source-arrow {
+    color: var(--foreground-muted);
+    flex-shrink: 0;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: all var(--transition-fast);
+  }
+
+  .source-link:hover .source-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* Inline source links */
   :global(.inline-source-link) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #667eea;
+    color: var(--accent);
     text-decoration: none;
-    padding: 0.25rem;
-    border-radius: 4px;
-    transition: all 0.2s;
-    background: rgba(102, 126, 234, 0.1);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    background: var(--accent-light);
     vertical-align: middle;
-    margin: 0 0.125rem;
+    margin: 0 2px;
   }
 
   :global(.inline-source-link:hover) {
-    background: rgba(102, 126, 234, 0.2);
-    transform: translateY(-1px);
+    background: var(--accent);
+    color: var(--accent-foreground);
   }
 
   :global(.inline-source-link svg) {
-    width: 16px;
-    height: 16px;
-    opacity: 0.8;
+    width: 14px;
+    height: 14px;
   }
 
-  :global(.inline-source-link:hover svg) {
-    opacity: 1;
-  }
-
-  /* Markdown formatting styles */
+  /* Markdown content styles */
   :global(.message-content p) {
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 var(--space-3) 0;
   }
 
   :global(.message-content p:last-child) {
@@ -563,117 +746,167 @@
     font-weight: 600;
   }
 
-  :global(.message-content em) {
-    font-style: italic;
-  }
-
   :global(.message-content ul),
   :global(.message-content ol) {
-    margin: 0.25rem 0;
-    padding-left: 1.5rem;
+    margin: var(--space-2) 0;
+    padding-left: var(--space-6);
   }
 
   :global(.message-content li) {
-    margin: 0.125rem 0;
-    line-height: 1.5;
-  }
-
-  :global(.message-content code) {
-    background: rgba(0, 0, 0, 0.05);
-    padding: 0.125rem 0.375rem;
-    border-radius: 3px;
-    font-family: 'Monaco', 'Courier New', monospace;
-    font-size: 0.9em;
-  }
-
-  :global(.message-content pre) {
-    background: rgba(0, 0, 0, 0.05);
-    padding: 0.75rem;
-    border-radius: 6px;
-    overflow-x: auto;
-    margin: 0.5rem 0;
-  }
-
-  :global(.message-content pre code) {
-    background: none;
-    padding: 0;
+    margin: var(--space-1) 0;
   }
 
   :global(.message-content blockquote) {
-    border-left: 3px solid #667eea;
-    padding-left: 1rem;
-    margin: 0.5rem 0;
-    color: #6b7280;
+    border-left: 2px solid var(--accent);
+    padding-left: var(--space-4);
+    margin: var(--space-3) 0;
+    color: var(--foreground-secondary);
   }
 
   :global(.message-content h1),
   :global(.message-content h2),
   :global(.message-content h3) {
-    margin: 1rem 0 0.5rem 0;
+    margin: var(--space-4) 0 var(--space-2) 0;
     font-weight: 600;
   }
 
-  :global(.message-content h1) {
-    font-size: 1.5em;
-  }
+  :global(.message-content h1) { font-size: 1.375rem; }
+  :global(.message-content h2) { font-size: 1.125rem; }
+  :global(.message-content h3) { font-size: 1rem; }
 
-  :global(.message-content h2) {
-    font-size: 1.25em;
-  }
-
-  :global(.message-content h3) {
-    font-size: 1.1em;
+  /* Footer/Input */
+  .footer {
+    border-top: 1px solid var(--border);
+    background: var(--background);
+    padding: var(--space-4) var(--space-6);
   }
 
   .input-form {
-    padding: 1.5rem 2rem;
-    border-top: 1px solid #e5e7eb;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .input-wrapper {
     display: flex;
-    gap: 0.75rem;
-    background: white;
+    align-items: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition-fast);
+  }
+
+  .input-wrapper:focus-within {
+    border-color: var(--input-focus-border);
   }
 
   textarea {
     flex: 1;
-    padding: 0.875rem 1rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
+    padding: var(--space-2);
+    background: transparent;
+    border: none;
+    color: var(--foreground);
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 0.9375rem;
+    line-height: 1.5;
     resize: none;
     outline: none;
-    transition: border-color 0.2s;
+    min-height: 24px;
+    max-height: 200px;
   }
 
-  textarea:focus {
-    border-color: #667eea;
+  textarea::placeholder {
+    color: var(--input-placeholder);
   }
 
   textarea:disabled {
-    background: #f9fafb;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
-  button[type='submit'] {
-    width: 48px;
-    height: 48px;
-    background: #667eea;
-    color: white;
+  .send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    color: var(--accent-foreground);
     border: none;
-    border-radius: 8px;
-    font-size: 1.5rem;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
   }
 
-  button[type='submit']:hover:not(:disabled) {
-    background: #5568d3;
+  .send-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
     transform: scale(1.05);
   }
 
-  button[type='submit']:disabled {
+  .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .header-content {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .main {
+      padding: var(--space-4);
+    }
+
+    .footer {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .welcome-container {
+      padding: var(--space-4);
+    }
+
+    .welcome-title {
+      font-size: 1.5rem;
+    }
+
+    .welcome-subtitle {
+      font-size: 0.875rem;
+    }
+
+    .suggestion-chip {
+      font-size: 0.75rem;
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .message-content {
+      max-width: 90%;
+    }
+
+    .sources {
+      max-width: 90%;
+    }
+
+    .provider-selector select {
+      font-size: 0.8125rem;
+      padding: var(--space-2) var(--space-6) var(--space-2) var(--space-2);
+    }
+
+    .logo-text {
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .suggestions {
+      gap: var(--space-1);
+    }
+
+    .suggestion-chip {
+      font-size: 0.6875rem;
+    }
   }
 </style>
