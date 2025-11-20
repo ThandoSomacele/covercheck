@@ -155,12 +155,18 @@
   }
 </script>
 
+<svelte:head>
+  <title>CoverCheck - South African Medical Aid Assistant</title>
+  <meta name="description" content="Get instant answers about South African medical aid plans from Discovery Health, Bonitas, and Momentum. Compare benefits, coverage, and costs with AI-powered assistance." />
+</svelte:head>
+
 <div class="app">
   <header class="header">
     <div class="header-content">
       <div class="logo">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="m9 12 2 2 4-4"></path>
         </svg>
         <span class="logo-text">CoverCheck</span>
       </div>
@@ -187,7 +193,8 @@
     <div class="welcome">
       <div class="welcome-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="m9 12 2 2 4-4"></path>
         </svg>
       </div>
       <h1 class="welcome-title">How can I help you today?</h1>
@@ -282,7 +289,7 @@
                       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                     </svg>
-                    <span>Sources</span>
+                    <span>Sources ({message.sources.length})</span>
                   </div>
                   <div class="source-links">
                     {#each message.sources as source, i}
@@ -291,11 +298,19 @@
                         target="_blank"
                         rel="noopener noreferrer"
                         class="source-link"
-                        title="{source.provider} - {Math.round(source.relevance * 100)}% relevant"
+                        title="View source: {source.title}"
                       >
                         <span class="source-number">{i + 1}</span>
-                        <span class="source-title">{source.title}</span>
-                        <span class="source-provider">{source.provider}</span>
+                        <div class="source-info">
+                          <span class="source-title">{source.title}</span>
+                          <div class="source-meta">
+                            <span class="source-provider">{source.provider}</span>
+                            <span class="source-relevance-dot">•</span>
+                            <span class="source-relevance" class:high-relevance={source.relevance >= 0.7} class:medium-relevance={source.relevance >= 0.5 && source.relevance < 0.7}>
+                              {Math.round(source.relevance * 100)}% match
+                            </span>
+                          </div>
+                        </div>
                         <svg class="source-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M7 17L17 7"></path>
                           <path d="M7 7h10v10"></path>
@@ -672,8 +687,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     background: var(--accent-light);
     color: var(--accent);
     border-radius: var(--radius-sm);
@@ -682,17 +697,48 @@
     flex-shrink: 0;
   }
 
-  .source-title {
+  .source-info {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  .source-title {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .source-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.75rem;
   }
 
   .source-provider {
     color: var(--foreground-tertiary);
-    font-size: 0.75rem;
-    flex-shrink: 0;
+  }
+
+  .source-relevance-dot {
+    color: var(--foreground-tertiary);
+    font-size: 0.625rem;
+  }
+
+  .source-relevance {
+    color: var(--foreground-secondary);
+    font-weight: 500;
+  }
+
+  .source-relevance.high-relevance {
+    color: #10b981;
+  }
+
+  .source-relevance.medium-relevance {
+    color: #f59e0b;
   }
 
   .source-arrow {
@@ -867,6 +913,17 @@
 
     .welcome-container {
       padding: var(--space-4);
+      gap: var(--space-6);
+    }
+
+    .welcome-icon {
+      width: 56px;
+      height: 56px;
+    }
+
+    .welcome-icon svg {
+      width: 40px;
+      height: 40px;
     }
 
     .welcome-title {
@@ -883,11 +940,33 @@
     }
 
     .message-content {
-      max-width: 90%;
+      max-width: 95%;
+      padding: var(--space-3) var(--space-4);
+      font-size: 0.875rem;
     }
 
     .sources {
-      max-width: 90%;
+      max-width: 95%;
+    }
+
+    .source-link {
+      padding: var(--space-2) var(--space-3);
+      gap: var(--space-2);
+    }
+
+    .source-number {
+      width: 20px;
+      height: 20px;
+      font-size: 0.6875rem;
+    }
+
+    .source-title {
+      font-size: 0.8125rem;
+    }
+
+    .source-meta {
+      font-size: 0.6875rem;
+      gap: var(--space-1);
     }
 
     .provider-selector select {
@@ -898,15 +977,91 @@
     .logo-text {
       font-size: 1rem;
     }
+
+    .input-wrapper {
+      padding: var(--space-2);
+    }
+
+    textarea {
+      font-size: 0.875rem;
+    }
   }
 
   @media (max-width: 480px) {
+    .header-content {
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .logo svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .logo-text {
+      font-size: 0.9375rem;
+    }
+
+    .provider-selector select {
+      font-size: 0.75rem;
+      padding: var(--space-1) var(--space-5) var(--space-1) var(--space-2);
+    }
+
+    .select-icon {
+      width: 14px;
+      height: 14px;
+      right: var(--space-2);
+    }
+
     .suggestions {
       gap: var(--space-1);
     }
 
     .suggestion-chip {
       font-size: 0.6875rem;
+      padding: var(--space-1) var(--space-3);
+    }
+
+    .message-content {
+      max-width: 98%;
+      padding: var(--space-3);
+      font-size: 0.8125rem;
+    }
+
+    .sources-header {
+      font-size: 0.75rem;
+    }
+
+    .sources-header svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .source-link {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    .source-info {
+      width: 100%;
+    }
+
+    .source-arrow {
+      display: none;
+    }
+
+    .welcome-title {
+      font-size: 1.25rem;
+    }
+
+    .welcome-icon {
+      width: 48px;
+      height: 48px;
+    }
+
+    .welcome-icon svg {
+      width: 32px;
+      height: 32px;
     }
   }
 </style>
