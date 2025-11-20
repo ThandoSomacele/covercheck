@@ -31,7 +31,126 @@ export interface RAGResponse {
 }
 
 /**
- * Semantic search using vector similarity
+ * Expand query with relevant medical aid terminology for better semantic matching
+ */
+function expandQuery(query: string): string {
+  const expansions: { [key: string]: string[] } = {
+    // Pregnancy and maternity
+    pregnant: ['pregnancy', 'maternity', 'antenatal', 'prenatal', 'obstetric', 'expecting', 'baby'],
+    pregnancy: ['pregnant', 'maternity', 'antenatal', 'prenatal', 'obstetric', 'expecting', 'baby'],
+    baby: ['newborn', 'infant', 'child', 'birth', 'delivery', 'maternity', 'paediatric'],
+    birth: ['delivery', 'labour', 'childbirth', 'maternity', 'obstetric', 'caesarean', 'natural birth'],
+
+    // Medical procedures
+    surgery: ['operation', 'procedure', 'surgical', 'theatre'],
+    operation: ['surgery', 'procedure', 'surgical'],
+
+    // Coverage and benefits
+    cover: ['coverage', 'benefit', 'included', 'pay for', 'pays for'],
+    benefits: ['coverage', 'cover', 'included', 'entitlement'],
+
+    // Hospital and facilities
+    hospital: ['hospitalisation', 'admission', 'ward', 'facility', 'clinic'],
+    doctor: ['GP', 'physician', 'specialist', 'practitioner', 'medical practitioner'],
+
+    // Chronic conditions
+    chronic: ['chronic condition', 'chronic disease list', 'CDL', 'long-term condition'],
+
+    // Emergency
+    emergency: ['casualty', 'trauma', 'urgent', 'acute'],
+  };
+
+  let expandedQuery = query.toLowerCase();
+
+  // Add related terms to the query
+  for (const [term, relatedTerms] of Object.entries(expansions)) {
+    if (expandedQuery.includes(term)) {
+      expandedQuery += ' ' + relatedTerms.join(' ');
+    }
+  }
+
+  return expandedQuery;
+}
+
+/**
+ * Detect query intent and extract relevant keywords
+ */
+function detectQueryIntent(query: string): { intent: string; keywords: string[] } {
+  const lowerQuery = query.toLowerCase();
+
+  // Pregnancy/maternity intent
+  if (/(pregnan|maternit|baby|birth|newborn|expecting|antenatal|prenatal|obstetric)/i.test(lowerQuery)) {
+    return {
+      intent: 'pregnancy_maternity',
+      keywords: ['pregnancy', 'maternity', 'antenatal', 'prenatal', 'obstetric', 'baby', 'newborn', 'birth', 'delivery']
+    };
+  }
+
+  // Chronic condition intent
+  if (/(chronic|long.?term|ongoing|manage)/i.test(lowerQuery)) {
+    return {
+      intent: 'chronic_condition',
+      keywords: ['chronic', 'chronic condition', 'CDL', 'long-term', 'medication', 'management']
+    };
+  }
+
+  // Emergency intent
+  if (/(emergency|urgent|casualt|trauma|accident)/i.test(lowerQuery)) {
+    return {
+      intent: 'emergency',
+      keywords: ['emergency', 'casualty', 'trauma', 'urgent', 'accident', 'acute']
+    };
+  }
+
+  // Hospital/procedure intent
+  if (/(hospital|surgery|operation|procedure|admission)/i.test(lowerQuery)) {
+    return {
+      intent: 'hospital_procedure',
+      keywords: ['hospital', 'hospitalisation', 'surgery', 'operation', 'procedure', 'admission', 'ward']
+    };
+  }
+
+  // General coverage/benefits
+  return {
+    intent: 'general_coverage',
+    keywords: []
+  };
+}
+
+/**
+ * Re-rank search results based on query intent and keyword matching
+ */
+function reRankResults(results: SearchResult[], query: string): SearchResult[] {
+  const { intent, keywords } = detectQueryIntent(query);
+
+  // If no specific intent or no keywords, return as-is
+  if (intent === 'general_coverage' || keywords.length === 0) {
+    return results;
+  }
+
+  // Calculate boost score based on keyword presence in content
+  return results.map(result => {
+    let boostScore = 0;
+    const contentLower = result.content.toLowerCase();
+
+    keywords.forEach(keyword => {
+      if (contentLower.includes(keyword.toLowerCase())) {
+        boostScore += 0.1; // Add 0.1 for each matching keyword
+      }
+    });
+
+    // Apply boost to similarity score (cap at 1.0)
+    const boostedSimilarity = Math.min(1.0, result.similarity + boostScore);
+
+    return {
+      ...result,
+      similarity: boostedSimilarity
+    };
+  }).sort((a, b) => b.similarity - a.similarity);
+}
+
+/**
+ * Semantic search using vector similarity with query expansion and re-ranking
  */
 export async function semanticSearch(
   query: string,
@@ -44,13 +163,19 @@ export async function semanticSearch(
   try {
     await db.connect();
 
-    // Generate embedding for the query
+    // Expand query with related terms for better semantic matching
+    const expandedQuery = expandQuery(query);
+
+    // Generate embedding for the expanded query
     const response = await ollama.embeddings({
       model: 'nomic-embed-text',
-      prompt: query,
+      prompt: expandedQuery,
     });
 
     const queryEmbedding = response.embedding;
+
+    // Retrieve more results than needed (we'll re-rank and filter)
+    const retrieveLimit = limit * 3;
 
     // Build SQL query with optional provider filter
     let sql = `
@@ -75,17 +200,23 @@ export async function semanticSearch(
 			ORDER BY embedding <=> $1::vector
 			LIMIT $${params.length + 1}
 		`;
-    params.push(limit);
+    params.push(retrieveLimit);
 
     const result = await db.query(sql, params);
 
-    return result.rows.map(row => ({
+    const searchResults = result.rows.map(row => ({
       content: row.content,
       documentTitle: row.document_title,
       documentUrl: row.document_url,
       provider: row.provider,
       similarity: parseFloat(row.similarity),
     }));
+
+    // Re-rank based on query intent and keyword matching
+    const reRankedResults = reRankResults(searchResults, query);
+
+    // Return top results after re-ranking
+    return reRankedResults.slice(0, limit);
   } finally {
     await db.end();
   }
@@ -106,29 +237,86 @@ export async function queryInsurance(question: string, providerFilter?: string):
     };
   }
 
-  // Build context from search results
+  // Build sources array with unique documents
+  const sourcesMap = new Map<string, { title: string; url: string; provider: string; relevance: number; firstIndex: number }>();
+
+  relevantChunks.forEach((chunk, index) => {
+    const key = chunk.documentUrl;
+    if (!sourcesMap.has(key)) {
+      sourcesMap.set(key, {
+        title: chunk.documentTitle,
+        url: chunk.documentUrl,
+        provider: chunk.provider,
+        relevance: chunk.similarity,
+        firstIndex: index,
+      });
+    }
+  });
+
+  // Sort by first appearance to maintain logical citation order
+  const sources = Array.from(sourcesMap.values())
+    .sort((a, b) => a.firstIndex - b.firstIndex)
+    .map(({ firstIndex, ...source }) => source);
+
+  // Create a mapping from chunk index to source index
+  const chunkToSourceMap = new Map<number, number>();
+  relevantChunks.forEach((chunk, chunkIndex) => {
+    const sourceIndex = sources.findIndex(s => s.url === chunk.documentUrl);
+    chunkToSourceMap.set(chunkIndex, sourceIndex);
+  });
+
+  // Build context from search results with proper source references
   const context = relevantChunks
-    .map(
-      (chunk, i) =>
-        `[Source ${i + 1}: ${chunk.documentTitle} - ${chunk.provider}]
-${chunk.content}`
-    )
+    .map((chunk, i) => {
+      const sourceNum = chunkToSourceMap.get(i)! + 1;
+      const source = sources[sourceNum - 1];
+      return `[Source ${sourceNum}: ${source.title} (${source.provider})]
+${chunk.content}`;
+    })
     .join('\n\n---\n\n');
 
   // Get simplification prompt
   const simplificationPrompt = getSimplificationPromptSA();
+
+  // Detect query intent to provide context-specific instructions
+  const { intent } = detectQueryIntent(question);
+  let specificInstructions = '';
+
+  if (intent === 'pregnancy_maternity') {
+    specificInstructions = `
+CONTEXT: This question is about pregnancy, maternity, or baby-related benefits.
+- Focus on maternity benefits, antenatal care, delivery, postnatal care, and newborn coverage
+- Include specific details like covered tests, scans, visits, and hospitalization
+- Mention any waiting periods, limits, or co-payments
+- If discussing plan changes, focus on benefits that matter for pregnancy`;
+  } else if (intent === 'chronic_condition') {
+    specificInstructions = `
+CONTEXT: This question is about chronic conditions or long-term care.
+- Focus on Chronic Disease List (CDL), prescribed minimum benefits (PMBs)
+- Include details about medication coverage, monitoring, and specialist visits`;
+  } else if (intent === 'emergency') {
+    specificInstructions = `
+CONTEXT: This question is about emergency or urgent care.
+- Focus on casualty coverage, trauma units, emergency admissions
+- Include details about ambulance services and emergency procedures`;
+  }
 
   // Create prompt with citations
   const prompt = `${simplificationPrompt}
 
 MEDICAL AID DOCUMENTS TO USE:
 ${context}
+${specificInstructions}
 
 USER'S QUESTION: ${question}
 
-IMPORTANT: When answering, cite your sources by mentioning the source number (e.g., "According to Source 1..." or "As stated in Source 2..."). This helps users verify the information.
+CRITICAL CITATION INSTRUCTIONS:
+- ALWAYS cite sources by their full name, e.g., "According to the Discovery Health Comprehensive Plan" or "As stated in the Bonitas BonEssential plan"
+- NEVER use generic references like "Source 1" or just "🔗"
+- Include the provider name when mentioning a plan, e.g., "Discovery Health's Executive Plan" or "Bonitas Standard Select"
+- Be specific about which plan you're referencing: "The KeyCare Plus plan from Discovery Health covers..."
 
-YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
+YOUR ANSWER (Remember: Use SA English, Rands, cite plans by their full names):`;
 
   // Initialize OpenRouter client (compatible with OpenAI SDK)
   const openrouter = new OpenAI({
@@ -188,24 +376,9 @@ YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
     responseText = "I'm experiencing high demand right now. Please try again in a moment.";
   }
 
-  // Build sources array with unique documents
-  const sourcesMap = new Map<string, { title: string; url: string; provider: string; relevance: number }>();
-
-  relevantChunks.forEach(chunk => {
-    const key = chunk.documentUrl;
-    if (!sourcesMap.has(key) || sourcesMap.get(key)!.relevance < chunk.similarity) {
-      sourcesMap.set(key, {
-        title: chunk.documentTitle,
-        url: chunk.documentUrl,
-        provider: chunk.provider,
-        relevance: chunk.similarity,
-      });
-    }
-  });
-
   return {
     response: responseText,
-    sources: Array.from(sourcesMap.values()).sort((a, b) => b.relevance - a.relevance),
+    sources: sources,
   };
 }
 
@@ -277,11 +450,12 @@ export async function* queryInsuranceStream(
     data: sources,
   };
 
-  // Build context from search results with correct source numbering
+  // Build context from search results with proper source references
   const context = relevantChunks
     .map((chunk, i) => {
       const sourceNum = chunkToSourceMap.get(i)! + 1;
-      return `[Source ${sourceNum}: ${chunk.documentTitle} - ${chunk.provider}]
+      const source = sources[sourceNum - 1];
+      return `[Source ${sourceNum}: ${source.title} (${source.provider})]
 ${chunk.content}`;
     })
     .join('\n\n---\n\n');
@@ -289,17 +463,45 @@ ${chunk.content}`;
   // Get simplification prompt
   const simplificationPrompt = getSimplificationPromptSA();
 
+  // Detect query intent to provide context-specific instructions
+  const { intent } = detectQueryIntent(question);
+  let specificInstructions = '';
+
+  if (intent === 'pregnancy_maternity') {
+    specificInstructions = `
+CONTEXT: This question is about pregnancy, maternity, or baby-related benefits.
+- Focus on maternity benefits, antenatal care, delivery, postnatal care, and newborn coverage
+- Include specific details like covered tests, scans, visits, and hospitalization
+- Mention any waiting periods, limits, or co-payments
+- If discussing plan changes, focus on benefits that matter for pregnancy`;
+  } else if (intent === 'chronic_condition') {
+    specificInstructions = `
+CONTEXT: This question is about chronic conditions or long-term care.
+- Focus on Chronic Disease List (CDL), prescribed minimum benefits (PMBs)
+- Include details about medication coverage, monitoring, and specialist visits`;
+  } else if (intent === 'emergency') {
+    specificInstructions = `
+CONTEXT: This question is about emergency or urgent care.
+- Focus on casualty coverage, trauma units, emergency admissions
+- Include details about ambulance services and emergency procedures`;
+  }
+
   // Create prompt with citations
   const prompt = `${simplificationPrompt}
 
 MEDICAL AID DOCUMENTS TO USE:
 ${context}
+${specificInstructions}
 
 USER'S QUESTION: ${question}
 
-IMPORTANT: When answering, cite your sources by mentioning the source number (e.g., "According to Source 1..." or "As stated in Source 2..."). This helps users verify the information.
+CRITICAL CITATION INSTRUCTIONS:
+- ALWAYS cite sources by their full name, e.g., "According to the Discovery Health Comprehensive Plan" or "As stated in the Bonitas BonEssential plan"
+- NEVER use generic references like "Source 1" or just "🔗"
+- Include the provider name when mentioning a plan, e.g., "Discovery Health's Executive Plan" or "Bonitas Standard Select"
+- Be specific about which plan you're referencing: "The KeyCare Plus plan from Discovery Health covers..."
 
-YOUR ANSWER (Remember: Use SA English, Rands, and medical aid terminology):`;
+YOUR ANSWER (Remember: Use SA English, Rands, cite plans by their full names):`;
 
   // Initialize OpenRouter client
   const openrouter = new OpenAI({
