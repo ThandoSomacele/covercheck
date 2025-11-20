@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
-import { Ollama } from 'ollama';
 import pg from 'pg';
+import { getEmbeddingProvider } from '../src/lib/server/embedding-service.js';
 const { Client } = pg;
 
 config();
@@ -11,7 +11,7 @@ async function testSimpleQuery() {
   console.log('🔍 Testing Basic Semantic Search Query\n');
   console.log('=' .repeat(60) + '\n');
 
-  const ollama = new Ollama();
+  const embeddingProvider = getEmbeddingProvider();
   const db = new Client({ connectionString: DB_CONNECTION_STRING });
 
   try {
@@ -50,14 +50,10 @@ async function testSimpleQuery() {
 
     const query = 'How much does maternity cover cost on Bonitas?';
     console.log(`Query: "${query}"`);
+    console.log(`Using: ${embeddingProvider.getName()} (${embeddingProvider.getDimensions()} dimensions)\n`);
 
     // Generate embedding for the query
-    const response = await ollama.embeddings({
-      model: 'nomic-embed-text',
-      prompt: query,
-    });
-
-    const queryEmbedding = response.embedding;
+    const queryEmbedding = await embeddingProvider.generateEmbedding(query);
 
     // Search for relevant chunks
     const sql = `
