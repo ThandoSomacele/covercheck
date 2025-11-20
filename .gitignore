@@ -40,3 +40,4 @@ debug-*.json
 
 # SvelteKit
 .svelte-kit/
+.vercel
