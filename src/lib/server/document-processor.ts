@@ -1,7 +1,7 @@
-import { Ollama } from 'ollama';
 import pg from 'pg';
 import { readFileSync } from 'fs';
 import { createRequire } from 'module';
+import { getEmbeddingProvider } from './embedding-service';
 
 const require = createRequire(import.meta.url);
 const { PdfReader } = require('pdfreader');
@@ -67,7 +67,6 @@ const DEFAULT_CHUNKING_CONFIG: ChunkingConfig = {
  * Handles loading, chunking, embedding, and storing documents
  */
 export class DocumentProcessor {
-  private ollama: Ollama;
   private db: pg.Client;
   private config: ChunkingConfig;
 
@@ -75,7 +74,6 @@ export class DocumentProcessor {
     connectionString: string,
     config: ChunkingConfig = DEFAULT_CHUNKING_CONFIG
   ) {
-    this.ollama = new Ollama();
     this.db = new Client({ connectionString });
     this.config = config;
   }
@@ -186,21 +184,18 @@ export class DocumentProcessor {
   }
 
   /**
-   * Generate embedding for text using Ollama
+   * Generate embedding for text using configured provider
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    // Add retry logic for Ollama connection errors
+    // Add retry logic for connection errors
     const maxRetries = 3;
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const response = await this.ollama.embeddings({
-          model: 'nomic-embed-text',
-          prompt: text
-        });
-
-        return response.embedding;
+        const provider = getEmbeddingProvider();
+        const embedding = await provider.generateEmbedding(text);
+        return embedding;
       } catch (error) {
         lastError = error as Error;
         if (attempt < maxRetries) {

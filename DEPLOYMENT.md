@@ -103,12 +103,22 @@ In your Vercel project settings (or via CLI), set:
 # Database
 DB_CONNECTION_STRING=postgresql://user:pass@host:port/db
 
-# OpenRouter API
+# OpenRouter API (for LLM responses)
 OPENROUTER_API_KEY=sk-or-v1-your_key_here
+
+# Embedding Provider - IMPORTANT!
+# Use 'huggingface' for FREE cloud embeddings (recommended for production)
+EMBEDDING_PROVIDER=huggingface
+
+# Hugging Face API Key (FREE - no credit card required)
+# Get from https://huggingface.co/settings/tokens
+HUGGINGFACE_API_KEY=hf_your_api_key_here
 
 # Production flag
 NODE_ENV=production
 ```
+
+**Note:** Hugging Face provides a FREE tier with generous rate limits - perfect for production without any cost!
 
 ### Deploy
 
@@ -152,21 +162,36 @@ Check these metrics:
 - **Backups**: Enable automated backups (both Railway and Supabase support this)
 - **Scaling**: Monitor database size and consider upgrading plan if needed
 
-### Ollama for Production
+### Embedding Providers
 
-Current setup uses local Ollama for embeddings. For production, consider:
+CoverCheck supports multiple embedding providers. Choose based on your budget and needs:
 
-**Option 1: Cloud Ollama (Recommended)**
-- Use a cloud-hosted Ollama instance
-- Set OLLAMA_HOST environment variable to cloud URL
+**Option 1: Hugging Face (Recommended for FREE deployment)**
+- ✅ **FREE tier** with generous rate limits
+- ✅ **No credit card** required
+- ✅ **Works on Vercel** (serverless compatible)
+- Set `EMBEDDING_PROVIDER=huggingface`
+- Get API key from https://huggingface.co/settings/tokens
+- Model: sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
 
-**Option 2: OpenRouter for Embeddings**
-- Switch to OpenRouter's embedding API
-- Update document-processor.ts to use cloud embeddings
+**Option 2: Ollama (Local development)**
+- ✅ **FREE** and unlimited
+- ✅ **Fast** and no API calls
+- ❌ **Not compatible** with Vercel/serverless
+- Requires Ollama running locally
+- Model: nomic-embed-text (768 dimensions)
 
-**Option 3: Keep Local** (Not Recommended)
-- Only viable if running on VM/VPS, not serverless
-- Requires Ollama service running 24/7
+**Option 3: OpenAI (When you have funds)**
+- ✅ **High quality** embeddings
+- ✅ **Works on Vercel**
+- 💰 **Paid**: ~$0.02 per 1M tokens (very affordable)
+- Set `EMBEDDING_PROVIDER=openai`
+- Model: text-embedding-3-small (1536 dimensions)
+
+**Option 4: Self-hosted Ollama (Future consideration)**
+- Host Ollama on a VPS ($12-20/month)
+- Full control and no per-request costs
+- Requires server management
 
 ### API Rate Limits
 

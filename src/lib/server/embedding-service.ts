@@ -41,40 +41,51 @@ class OllamaProvider implements EmbeddingProvider {
 
 /**
  * Hugging Face provider for cloud embeddings (FREE tier available)
- * Uses the Inference API with sentence-transformers/all-MiniLM-L6-v2
+ * Uses the Inference API with BAAI/bge-small-en-v1.5
  */
 class HuggingFaceProvider implements EmbeddingProvider {
   private apiKey: string;
-  private model = 'sentence-transformers/all-MiniLM-L6-v2'; // Free, fast, 384 dims
+  // Using BAAI/bge-small-en-v1.5 - optimized for embeddings, free, 384 dims
+  private model = 'BAAI/bge-small-en-v1.5';
   private apiUrl: string;
-  
+
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.apiUrl = `https://api-inference.huggingface.co/pipeline/feature-extraction/${this.model}`;
+    // Updated URL as of 2025 - new Hugging Face router endpoint
+    this.apiUrl = `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${this.model}`;
   }
   
   async generateEmbedding(text: string): Promise<number[]> {
-    const response = await fetch(this.apiUrl, {
+    // Use the new router endpoint (2025) with feature extraction task
+    const apiUrl = `https://router.huggingface.co/hf-inference/models/${this.model}`;
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: text,
+        inputs: [text],  // Send as array for sentence similarity models
         options: { wait_for_model: true }
       }),
     });
-    
+
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Hugging Face API error: ${response.status} - ${error}`);
     }
-    
-    const embedding = await response.json();
-    
-    // HF returns the embedding directly or in an array
-    return Array.isArray(embedding[0]) ? embedding[0] : embedding;
+
+    const result = await response.json();
+
+    // Handle different response formats
+    // Feature extraction returns embeddings directly
+    if (Array.isArray(result)) {
+      // If it's an array of arrays, take the first one
+      return Array.isArray(result[0]) ? result[0] : result;
+    }
+
+    throw new Error('Unexpected response format from Hugging Face API');
   }
   
   getDimensions(): number {
@@ -82,7 +93,7 @@ class HuggingFaceProvider implements EmbeddingProvider {
   }
   
   getName(): string {
-    return 'Hugging Face (all-MiniLM-L6-v2)';
+    return 'Hugging Face (bge-small-en-v1.5)';
   }
 }
 

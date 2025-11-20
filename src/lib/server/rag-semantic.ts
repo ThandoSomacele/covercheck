@@ -1,6 +1,6 @@
 import { DB_CONNECTION_STRING, OPENROUTER_API_KEY } from '$env/static/private';
 import { getSimplificationPromptSA } from '$lib/insurance/insurance-glossary-sa';
-import { Ollama } from 'ollama';
+import { getEmbeddingProvider } from './embedding-service';
 import OpenAI from 'openai';
 import pg from 'pg';
 
@@ -200,7 +200,6 @@ export async function semanticSearch(
   limit: number = 5,
   providerFilter?: string
 ): Promise<SearchResult[]> {
-  const ollama = new Ollama();
   const db = new Client({ connectionString: DB_CONNECTION_STRING });
 
   try {
@@ -210,18 +209,15 @@ export async function semanticSearch(
     const expandedQuery = expandQuery(query);
 
     // Generate embedding for the expanded query
-    let response;
+    let queryEmbedding;
     try {
-      response = await ollama.embeddings({
-        model: 'nomic-embed-text',
-        prompt: expandedQuery,
-      });
+      const provider = getEmbeddingProvider();
+      queryEmbedding = await provider.generateEmbedding(expandedQuery);
+      console.log(`Using ${provider.getName()} for embeddings`);
     } catch (error: any) {
-      console.error('Ollama embedding error:', error.message);
-      throw new Error('Unable to generate embeddings. Please ensure Ollama is running locally with the nomic-embed-text model.');
+      console.error('Embedding generation error:', error.message);
+      throw new Error('Unable to generate embeddings. Please check your embedding provider configuration.');
     }
-
-    const queryEmbedding = response.embedding;
 
     // Retrieve more results than needed (we'll re-rank and filter)
     const retrieveLimit = limit * 3;
