@@ -88,6 +88,34 @@ function expandQuery(query: string): string {
 }
 
 /**
+ * Detect provider mentioned in query
+ */
+function detectProviderInQuery(query: string): string | null {
+  const lowerQuery = query.toLowerCase();
+
+  // Check for explicit provider mentions
+  if (/(discovery|discovery health)/i.test(lowerQuery)) {
+    return 'Discovery Health Medical Scheme';
+  }
+  if (/(bonitas|bonitas medical)/i.test(lowerQuery)) {
+    return 'Bonitas Medical Fund';
+  }
+  if (/(momentum|momentum health)/i.test(lowerQuery)) {
+    return 'Momentum Health';
+  }
+
+  // Check for plan-specific mentions that indicate provider
+  if (/(keycare|comprehensive series|saver series|smart series|executive|classic|essential)/i.test(lowerQuery)) {
+    return 'Discovery Health Medical Scheme';
+  }
+  if (/(bonsave|bonfit|bonessential|bonprime|boncap|bonstart)/i.test(lowerQuery)) {
+    return 'Bonitas Medical Fund';
+  }
+
+  return null;
+}
+
+/**
  * Detect query intent and extract relevant keywords
  */
 function detectQueryIntent(query: string): { intent: string; keywords: string[] } {
@@ -241,8 +269,12 @@ export async function semanticSearch(
  * Query insurance using RAG with semantic search and cloud LLM
  */
 export async function queryInsurance(question: string, providerFilter?: string): Promise<RAGResponse> {
-  // Perform semantic search
-  const relevantChunks = await semanticSearch(question, 5, providerFilter);
+  // Auto-detect provider from query if not specified
+  const detectedProvider = detectProviderInQuery(question);
+  const effectiveProvider = providerFilter || detectedProvider || undefined;
+
+  // Perform semantic search with effective provider
+  const relevantChunks = await semanticSearch(question, 5, effectiveProvider);
 
   if (relevantChunks.length === 0) {
     return {
@@ -316,12 +348,31 @@ CONTEXT: This question is about emergency or urgent care.
 - Include details about ambulance services and emergency procedures`;
   }
 
+  // Determine if we have multi-provider results
+  const uniqueProviders = new Set(sources.map(s => s.provider));
+  const isMultiProvider = uniqueProviders.size > 1;
+
+  // Add provider-specific guidance
+  let providerGuidance = '';
+  if (effectiveProvider) {
+    providerGuidance = `\nNOTE: The user has specified or implied ${effectiveProvider}. Focus your answer on this provider's plans.`;
+  } else if (isMultiProvider) {
+    providerGuidance = `\nMULTI-PROVIDER RESPONSE STRATEGY:
+- The user has NOT specified a medical aid provider
+- You have documents from multiple providers (${Array.from(uniqueProviders).join(', ')})
+- Provide a COMPARATIVE answer highlighting key differences between providers
+- Structure: "Generally, [common aspect]. However, [provider A] offers [X], while [provider B] offers [Y]"
+- Keep it concise - max 2-3 providers comparison
+- End with: "For the most accurate information for your specific plan, please let me know which medical aid provider you're with."`;
+  }
+
   // Create prompt with citations
   const prompt = `${simplificationPrompt}
 
 MEDICAL AID DOCUMENTS TO USE:
 ${context}
 ${specificInstructions}
+${providerGuidance}
 
 USER'S QUESTION: ${question}
 
@@ -416,8 +467,12 @@ export async function* queryInsuranceStream(
   question: string,
   providerFilter?: string
 ): AsyncGenerator<{ type: 'sources' | 'chunk' | 'done'; data: any }> {
-  // Perform semantic search
-  const relevantChunks = await semanticSearch(question, 5, providerFilter);
+  // Auto-detect provider from query if not specified
+  const detectedProvider = detectProviderInQuery(question);
+  const effectiveProvider = providerFilter || detectedProvider || undefined;
+
+  // Perform semantic search with effective provider
+  const relevantChunks = await semanticSearch(question, 5, effectiveProvider);
 
   if (relevantChunks.length === 0) {
     yield {
@@ -501,12 +556,31 @@ CONTEXT: This question is about emergency or urgent care.
 - Include details about ambulance services and emergency procedures`;
   }
 
+  // Determine if we have multi-provider results
+  const uniqueProviders = new Set(sources.map(s => s.provider));
+  const isMultiProvider = uniqueProviders.size > 1;
+
+  // Add provider-specific guidance
+  let providerGuidance = '';
+  if (effectiveProvider) {
+    providerGuidance = `\nNOTE: The user has specified or implied ${effectiveProvider}. Focus your answer on this provider's plans.`;
+  } else if (isMultiProvider) {
+    providerGuidance = `\nMULTI-PROVIDER RESPONSE STRATEGY:
+- The user has NOT specified a medical aid provider
+- You have documents from multiple providers (${Array.from(uniqueProviders).join(', ')})
+- Provide a COMPARATIVE answer highlighting key differences between providers
+- Structure: "Generally, [common aspect]. However, [provider A] offers [X], while [provider B] offers [Y]"
+- Keep it concise - max 2-3 providers comparison
+- End with: "For the most accurate information for your specific plan, please let me know which medical aid provider you're with."`;
+  }
+
   // Create prompt with citations
   const prompt = `${simplificationPrompt}
 
 MEDICAL AID DOCUMENTS TO USE:
 ${context}
 ${specificInstructions}
+${providerGuidance}
 
 USER'S QUESTION: ${question}
 
