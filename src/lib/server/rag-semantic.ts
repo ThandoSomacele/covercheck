@@ -210,10 +210,16 @@ export async function semanticSearch(
     const expandedQuery = expandQuery(query);
 
     // Generate embedding for the expanded query
-    const response = await ollama.embeddings({
-      model: 'nomic-embed-text',
-      prompt: expandedQuery,
-    });
+    let response;
+    try {
+      response = await ollama.embeddings({
+        model: 'nomic-embed-text',
+        prompt: expandedQuery,
+      });
+    } catch (error: any) {
+      console.error('Ollama embedding error:', error.message);
+      throw new Error('Unable to generate embeddings. Please ensure Ollama is running locally with the nomic-embed-text model.');
+    }
 
     const queryEmbedding = response.embedding;
 
