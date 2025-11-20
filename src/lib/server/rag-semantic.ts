@@ -216,6 +216,18 @@ export async function semanticSearch(
       console.log(`Using ${provider.getName()} for embeddings`);
     } catch (error: any) {
       console.error('Embedding generation error:', error.message);
+
+      // Check if it's a Hugging Face API downtime (502/503 errors)
+      if (error.message.includes('502') || error.message.includes('503') || error.message.includes('Bad Gateway')) {
+        throw new Error('🔧 We\'re experiencing temporary technical difficulties with our search service. Please try again in a few minutes. We apologize for the inconvenience!');
+      }
+
+      // Check if it's a rate limit (429)
+      if (error.message.includes('429') || error.message.includes('rate limit')) {
+        throw new Error('⏰ We\'ve received a lot of queries recently! Please wait a moment and try again.');
+      }
+
+      // Generic error for other cases
       throw new Error('Unable to generate embeddings. Please check your embedding provider configuration.');
     }
 

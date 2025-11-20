@@ -21,11 +21,15 @@ export const POST: RequestHandler = async ({ request }) => {
 						const data = JSON.stringify(chunk) + '\n';
 						controller.enqueue(encoder.encode(data));
 					}
-				} catch (error) {
+				} catch (error: any) {
 					console.error('Streaming error:', error);
+
+					// Pass through user-friendly error messages from the RAG system
+					const errorMessage = error?.message || "I'm sorry, I encountered an issue while processing your question. Please try again.";
+
 					const errorChunk = JSON.stringify({
 						type: 'error',
-						data: "I'm sorry, I encountered an issue while processing your question. Please try again."
+						data: errorMessage
 					}) + '\n';
 					controller.enqueue(encoder.encode(errorChunk));
 				} finally {
