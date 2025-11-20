@@ -41,23 +41,38 @@ function expandQuery(query: string): string {
     baby: ['newborn', 'infant', 'child', 'birth', 'delivery', 'maternity', 'paediatric'],
     birth: ['delivery', 'labour', 'childbirth', 'maternity', 'obstetric', 'caesarean', 'natural birth'],
 
-    // Medical procedures
-    surgery: ['operation', 'procedure', 'surgical', 'theatre'],
-    operation: ['surgery', 'procedure', 'surgical'],
+    // Medical procedures and surgery
+    surgery: ['operation', 'procedure', 'surgical', 'theatre', 'hospital', 'hospitalisation', 'admission', 'in-hospital', 'ward', 'theatre fees', 'surgeon', 'anaesthetist'],
+    operation: ['surgery', 'procedure', 'surgical', 'hospital', 'hospitalisation', 'admission', 'theatre'],
+    procedure: ['surgery', 'operation', 'surgical', 'hospital', 'treatment', 'medical procedure'],
+    surgical: ['surgery', 'operation', 'procedure', 'hospital', 'theatre'],
 
     // Coverage and benefits
-    cover: ['coverage', 'benefit', 'included', 'pay for', 'pays for'],
-    benefits: ['coverage', 'cover', 'included', 'entitlement'],
+    cover: ['coverage', 'benefit', 'included', 'pay for', 'pays for', 'paid'],
+    benefits: ['coverage', 'cover', 'included', 'entitlement', 'benefit'],
+
+    // Payment and costs
+    'co-payment': ['copayment', 'co-pay', 'out-of-pocket', 'deductible', 'levy'],
+    claim: ['claims', 'reimbursement', 'paid', 'payment', 'invoice'],
 
     // Hospital and facilities
-    hospital: ['hospitalisation', 'admission', 'ward', 'facility', 'clinic'],
-    doctor: ['GP', 'physician', 'specialist', 'practitioner', 'medical practitioner'],
+    hospital: ['hospitalisation', 'admission', 'ward', 'facility', 'in-hospital', 'inpatient', 'surgery', 'operation', 'theatre'],
+    hospitalisation: ['hospital', 'admission', 'ward', 'inpatient', 'hospital stay'],
+    admission: ['hospitalisation', 'hospital', 'admitted', 'inpatient', 'ward'],
+    doctor: ['GP', 'physician', 'specialist', 'practitioner', 'medical practitioner', 'consultation'],
+    specialist: ['doctor', 'physician', 'consultant', 'referral', 'specialised care'],
 
     // Chronic conditions
-    chronic: ['chronic condition', 'chronic disease list', 'CDL', 'long-term condition'],
+    chronic: ['chronic condition', 'chronic disease list', 'CDL', 'long-term condition', 'ongoing treatment'],
+    diabetes: ['chronic', 'CDL', 'chronic medication', 'blood sugar', 'glucose'],
+
+    // Prescribed Minimum Benefits
+    pmb: ['prescribed minimum benefits', 'PMB', 'minimum benefits', 'emergency', 'chronic disease list'],
 
     // Emergency
-    emergency: ['casualty', 'trauma', 'urgent', 'acute'],
+    emergency: ['casualty', 'trauma', 'urgent', 'acute', 'ambulance'],
+    casualty: ['emergency', 'trauma', 'urgent care', 'accident', 'ER'],
+    accident: ['emergency', 'casualty', 'trauma', 'injury', 'urgent'],
   };
 
   let expandedQuery = query.toLowerCase();
