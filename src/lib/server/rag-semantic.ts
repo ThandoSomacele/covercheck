@@ -89,13 +89,16 @@ function expandQuery(query: string): string {
 
 /**
  * Detect provider mentioned in query
+ * NOTE: These must match the provider values from the frontend (+page.svelte)
+ * and the database (document_chunks.provider column)
  */
 function detectProviderInQuery(query: string): string | null {
   const lowerQuery = query.toLowerCase();
 
   // Check for explicit provider mentions
+  // Return provider names that match the frontend selector values
   if (/(discovery|discovery health)/i.test(lowerQuery)) {
-    return 'Discovery Health Medical Scheme';
+    return 'Discovery Health';
   }
   if (/(bonitas|bonitas medical)/i.test(lowerQuery)) {
     return 'Bonitas Medical Fund';
@@ -106,7 +109,7 @@ function detectProviderInQuery(query: string): string | null {
 
   // Check for plan-specific mentions that indicate provider
   if (/(keycare|comprehensive series|saver series|smart series|executive|classic|essential)/i.test(lowerQuery)) {
-    return 'Discovery Health Medical Scheme';
+    return 'Discovery Health';
   }
   if (/(bonsave|bonfit|bonessential|bonprime|boncap|bonstart)/i.test(lowerQuery)) {
     return 'Bonitas Medical Fund';
