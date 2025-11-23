@@ -20,6 +20,11 @@
   let loading = $state(false);
   let selectedProvider = $state<string>('all');
 
+  function resetChat() {
+    messages = [];
+    input = '';
+  }
+
   // Configure marked options
   marked.setOptions({
     breaks: true,
@@ -163,13 +168,13 @@
 <div class="app">
   <header class="header">
     <div class="header-content">
-      <div class="logo">
+      <button class="logo" onclick={resetChat} aria-label="Reset chat and return to home">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           <path d="m9 12 2 2 4-4"></path>
         </svg>
         <span class="logo-text">CoverCheck</span>
-      </div>
+      </button>
 
       <div class="header-actions">
         <div class="provider-selector">
@@ -266,6 +271,9 @@
           <span>Compare benefits</span>
         </button>
       </div>
+      <p class="disclaimer">
+        CoverCheck provides AI-generated information for reference only. Always verify details directly with your medical aid provider before making healthcare decisions.
+      </p>
     </div>
   </div>
   {:else}
@@ -368,6 +376,9 @@
         </button>
       </div>
     </form>
+    <p class="disclaimer">
+      CoverCheck provides AI-generated information for reference only. Always verify details directly with your medical aid provider before making healthcare decisions.
+    </p>
   </footer>
   {/if}
 </div>
@@ -412,10 +423,24 @@
     align-items: center;
     gap: var(--space-2);
     color: var(--foreground);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: opacity var(--transition-fast);
+  }
+
+  .logo:hover {
+    opacity: 0.8;
   }
 
   .logo svg {
     color: var(--accent);
+    transition: transform var(--transition-fast);
+  }
+
+  .logo:hover svg {
+    transform: scale(1.05);
   }
 
   .logo-text {
@@ -830,6 +855,15 @@
   .input-form {
     max-width: 700px;
     margin: 0 auto;
+  }
+
+  .disclaimer {
+    max-width: 700px;
+    margin: var(--space-3) auto 0;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--foreground-tertiary);
+    line-height: 1.5;
   }
 
   .input-wrapper {
